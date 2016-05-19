@@ -1,0 +1,18 @@
+#ifdef CH_LANG_CC
+/*
+*      _______              __
+*     / ___/ /  ___  __ _  / /  ___
+*    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+*    \___/_//_/\___/_/_/_/_.__/\___/
+*    Please refer to Copyright.txt, in Chombo's root directory.
+*/
+#endif
+
+      real_t jet2radius, jet2maxVel, jet2viscosity
+      integer jet2flowDir
+      real_t jet2tubeOrig(0:CH_SPACEDIM-1),jet2tubeEnd(0:CH_SPACEDIM-1)
+      common /jet2cm/
+     &    jet2radius, jet2maxVel, jet2flowDir, jet2viscosity
+      common /jet2tubecm/
+     &    jet2tubeOrig, jet2tubeEnd
+      

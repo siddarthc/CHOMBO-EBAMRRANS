@@ -1,0 +1,103 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+      subroutine setinjectionparams(
+     &    chf_const_int[auinjectDir],
+     &    chf_const_real[auscalarInflowVal],
+     &    chf_const_real[auinjectRad],
+     &    chf_const_vr[auinjectOrig],
+     &    chf_const_vr[auinjectEnd])
+
+      integer spacedim, ivar
+
+#include "EBScalarCommon.fh"
+
+      spacedim = CH_SPACEDIM
+      injectDir = auinjectDir 
+      scalarInflowVal = auscalarInflowVal
+      injectRadius = auinjectRad
+      
+      do ivar = 0,spacedim-1
+        injectOrig(ivar) = auinjectOrig(ivar)
+        injectEnd(ivar) = auinjectEnd(ivar)
+      enddo
+
+      return 
+      end
+
+cccccccccccccccccc
+      subroutine scalarinit(
+     &    chf_fra[u],
+     &    chf_const_real[dx],
+     &    chf_box[box])
+
+      integer chf_ddecl[i;j;k]
+      integer iv(0:CH_SPACEDIM-1)
+      integer ivar, spacedim
+      real_t scalarval
+
+      chf_multido[box;i;j;k]
+
+      chf_dterm[
+      iv(0) = i;
+      iv(1) = j;
+      iv(2) = k]
+
+      call pointscalarinit(scalarval, iv, dx)
+
+      u(chf_ix[i;j;k],0) = scalarval
+
+      chf_enddo
+
+      return
+      end
+cccccccccccccccccc
+      subroutine pointscalarinit(
+     &    chf_real[scalarval],
+     &    chf_const_intvect[iv],
+     &    chf_const_real[dx])
+
+      integer chf_ddecl[itan; inorm1; inorm2]
+      integer spacedim
+      logical isinsidetube
+      real_t distance
+
+#include "EBScalarCommon.fh"
+
+cccc specializing this for this case
+cccc assumes that the tubeorigin[flowDir] > tubeend[flowDir]
+cccc     and the tube origin is aligned with flowDir
+
+
+      spacedim = CH_SPACEDIM
+      isinsidetube = .false.
+
+      chf_dterm[
+      itan = injectDir;
+      inorm1 = mod(injectDir +1,spacedim);
+      inorm2 = mod(injectDir +2,spacedim)]
+
+      distance = 2*injectRadius
+
+      if (((iv(itan) + 0.5)*dx .ge. injectEnd(itan)) .and. (iv(itan) + 0.5)*dx. le. (injectOrig(itan))) then
+        chf_dterm[
+        distance = 0.0; + ((iv(inorm1) + 0.5)*dx - injectOrig(inorm1))**2; + ((iv(inorm2) + 0.5)*dx - injectOrig(inorm2))**2]
+      end if
+
+      distance = sqrt(distance)
+      if (distance .le. injectRadius) then
+        isinsidetube = .true.
+      end if 
+
+      if (isInsideTube) then
+        scalarval = scalarInflowVal
+      else
+        scalarVal = 0.0
+      end if
+
+      return
+      end
+cccccccccccccccccccccccc

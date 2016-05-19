@@ -1,0 +1,126 @@
+max_step  	      = 100000
+max_time              = 450.0
+
+#restart_file = check3930.nx256.2d.hdf5
+do_steady_state = 0
+
+mg_relax_type  = 2
+mg_relax_lazy  = true
+mg_num_smooths = 4
+#bottom solver:  0=BiCGStab, 1=EBSimpleSmoother
+mg_bottom_solver = 1
+mg_num_precond = 4
+mg_num_cycles = 1
+mg_hang        = 1.0e-2
+mg_tolerance   = 1.0e-15
+mg_norm_thresh = 1.0e-15
+mg_iter_max    = 1000
+
+tag_on_scalar         = 0
+
+#euler
+viscosity             = 0.00375
+#refine_threshold      = 5.0
+
+refine_threshold      = 100.0
+
+# bcType = 0 for solid wall; 1 for free stream
+bcType                = 1  
+do_slip_walls         = 1
+do_slip_walls_hi      = 0 1 1
+do_slip_walls_lo      = 0 1 1
+
+order_ebbc            = 2
+order_time            = 2
+
+use_limiting          = 1
+domain_length         = 10.0
+#domain_periodicity    = 0 1 1 
+do_regrid_smoothing = true
+
+max_level	      = 3
+n_cell                = 64 32 32
+ref_ratio	      = 2 2 2 2 2 2 2 2 2
+num_filter_iterations  = 2
+num_gphi_iterations    = 2
+num_init_iterations    = 2
+
+checkpoint_interval   = 20
+plot_interval	      = 10
+max_grid_size	      = 16
+fill_ratio	      = 0.7
+block_factor	      = 8
+#regrid_interval	      = 2
+regrid_interval	      = 10
+##this has to be bigger than one!
+max_dt_grow	      = 1000
+cfl		      = 0.9
+init_cfl	      = 0.5
+verbosity	      = 1
+nesting_radius	      = 2
+tag_buffer	      = 8
+
+flow_dir	      = 0
+jet1_inflow_vel       = 5.0
+do_jet2               = 1
+jet2_inflow_vel       = -45.0
+
+jet1_poiseuille_inflow = false
+jet1_poise_profile_radius = 5.0
+jet1_poise_profile_center_pt = 0.0 2.5 2.5
+
+jet2_poiseuille_inflow = true
+jet2_poise_profile_radius = 0.05
+jet2_poise_profile_center_pt = 10.0 2.5 2.5
+
+jet2_tube_origin = 10.0 2.5 2.5
+jet2_tube_end = 8.5 2.5 2.5
+
+poiseuille_init = true
+poise_profile_axis = 1.0 0.0 0.0
+poise_maxvel_factor = 1.0
+
+#scalar parameters
+scalar_inflow_value = 1.0
+limit_scal_slope = 0
+max_scal_value = 1.0
+min_scal_value = 0.0
+set_scal_maxmin = 1
+scal_init = 1
+scal_use_fourth_order_slopes = 0
+
+#bad things might happen if use_flattening is true
+scal_use_flatten = 0 
+
+# should never be true
+scal_use_art_visc = 0
+#scal_artificial_viscosity = 0.0
+
+#amrmultigrid params
+scal_amrmultigrid.num_smooth = 16
+scal_amrmultigrid.num_mg = 1
+scal_amrmultigrid.hang_eps = 1.0e-15
+scal_amrmultigrid.norm_thresh = 1.0e-15
+scal_amrmultigrid.tolerance = 1.0e-15
+scal_amrmultigrid.max_iter = 100
+scal_amrmultigrid.verbosity = 3
+
+scal_do_diffusion = true
+# high schmidt number (based on thesis: mixing in high schmidt number jets)
+schmidt_number = 1900
+###geometry flag
+## 0 is all regular
+#which_geom = 0
+
+## 5 is a sphere
+#which_geom = 5
+
+#sphere_radius = 0.5
+#sphere_center = 2.0 2.0 2.0
+#cutplane_normal = 1.0 0.0 0.0
+
+which_geom = 27
+jet_center = 1.5 2.5 2.5
+jet_distance = 8.5 2.5 2.5
+jet_radius = 0.05
+wall_thickness = 0.025

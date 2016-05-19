@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/test/AMRElliptic
+END
+testAMRPoissonOp.H
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/test/AMRElliptic/testAMRPoissonOp.H
+END
+testBiCGStab.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/test/AMRElliptic/testBiCGStab.cpp
+END
+AnalyticForms.H
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/test/AMRElliptic/AnalyticForms.H
+END
+testMultiGrid.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/test/AMRElliptic/testMultiGrid.cpp
+END
+testNewPoissonOp.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/test/AMRElliptic/testNewPoissonOp.cpp
+END
+testNewPoissonOp4th.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/test/AMRElliptic/testNewPoissonOp4th.cpp
+END
+testPetscCompGrid.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/test/AMRElliptic/testPetscCompGrid.cpp
+END
+GNUmakefile
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/test/AMRElliptic/GNUmakefile
+END
+testVCAMRPoissonOp2.H
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/test/AMRElliptic/testVCAMRPoissonOp2.H
+END
+testPETScLinearLevelSolver.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/test/AMRElliptic/testPETScLinearLevelSolver.cpp
+END

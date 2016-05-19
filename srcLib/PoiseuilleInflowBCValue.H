@@ -1,0 +1,100 @@
+#ifdef CH_LANG_CC
+/*
+ *      _______              __
+ *     / ___/ /  ___  __ _  / /  ___
+ *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+ *    \___/_//_/\___/_/_/_/_.__/\___/
+ *    Please refer to Copyright.txt, in Chombo's root directory.
+ */
+#endif
+
+
+#ifndef _POISEUILLEINFLOWBCVALUE_H_
+#define _POISEUILLEINFLOWBCVALUE_H_
+
+#include "EBCellFAB.H"
+#include "EBISLayout.H"
+#include "EBFaceFAB.H"
+#include "REAL.H"
+#include "LevelData.H"
+#include "ProblemDomain.H"
+#include "NeumannPoissonDomainBC.H"
+#include "DirichletPoissonDomainBC.H"
+#include "BaseEBBC.H"
+#include "PolyGeom.H"
+
+#include "NamespaceHeader.H"
+
+///instantiation of basebcvalue that always returns a parabola around center of the domain
+/**
+    vel  = maxvel at r=0
+    dv/dr = 0 at r=0
+    vel = 0 at r=a_poisslleRadius
+    V = (1-r^2/r^2_0)*V_0
+*/
+class PoiseuilleInflowBCValue: public BaseBCValue
+{
+public:
+
+  PoiseuilleInflowBCValue(const RealVect& a_centerPt,
+                          const RealVect& a_tubeAxis,
+                          const Real&     a_tubeRadius,
+                          const Real&     a_avgVel,
+                          const int&      a_velComp,
+                          const Real&     a_viscosity)
+  {
+    define(a_centerPt, a_tubeAxis, a_tubeRadius, a_avgVel, a_velComp, a_viscosity);
+  }
+
+  void define(const RealVect& a_centerPt,
+              const RealVect& a_tubeAxis,
+              const Real&     a_tubeRadius,
+              const Real&     a_avgVel,
+              const int&      a_velComp,
+              const Real&     a_viscosity)
+  {
+    m_centerPt   = a_centerPt;
+    m_tubeAxis   = a_tubeAxis;
+    m_tubeRadius = a_tubeRadius;
+    m_avgVel     = a_avgVel;
+    m_maxVel     = 2.0*m_avgVel; // SC: hardwired for tube
+    m_velComp    = a_velComp;
+    m_viscosity  = a_viscosity;
+    Real sum;
+    PolyGeom::unifyVector(m_tubeAxis, sum);
+  }
+
+  ~PoiseuilleInflowBCValue()
+  {
+  }
+
+  Real value(const RealVect& a_point, const RealVect& a_normal, const Real& a_time, const int& a_comp) const;
+
+  Real        getRadius(const RealVect& a_point) const;
+  RealVect    getRadiusVector(const RealVect& a_point) const;
+  RealVect    getVel(const Real&     a_radius) const;
+  RealVect    getGradP() const;
+  RealVect    getTubeCenter() const;
+  Real        getTubeRadius() const;
+  Real        getMaxVel() const;
+  Real        getViscosity() const;
+
+  PoiseuilleInflowBCValue()
+  {
+    m_tubeRadius = -1;
+  }
+
+// private:
+public:
+  RealVect      m_centerPt;
+  RealVect      m_tubeAxis;
+  Real          m_tubeRadius;
+  Real          m_maxVel;
+  Real          m_avgVel;
+  int           m_velComp;
+  Real          m_viscosity;
+};
+
+#include "NamespaceFooter.H"
+
+#endif

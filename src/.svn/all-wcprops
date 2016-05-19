@@ -1,0 +1,95 @@
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svn/Chombo/!svn/ver/20285/release/3.1/releasedExamples/EBAMRINS/src
+END
+PoisselleTubeVelBC.H
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/PoisselleTubeVelBC.H
+END
+EBAMRNoSubcycleF.ChF
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/EBAMRNoSubcycleF.ChF
+END
+AMRINSUtils.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/AMRINSUtils.cpp
+END
+EBAMRNoSubcycle.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/Chombo/!svn/ver/19951/release/3.1/releasedExamples/EBAMRINS/src/EBAMRNoSubcycle.cpp
+END
+PoisselleTube.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/PoisselleTube.cpp
+END
+AMRINSUtils.H
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/AMRINSUtils.H
+END
+PoisselleTubeBCValue.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/PoisselleTubeBCValue.cpp
+END
+EBAMRNoSubcycle.H
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/svn/Chombo/!svn/ver/20285/release/3.1/releasedExamples/EBAMRINS/src/EBAMRNoSubcycle.H
+END
+PoisselleTube.H
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/PoisselleTube.H
+END
+ArteryIF.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/ArteryIF.cpp
+END
+PoisselleTubeBCValue.H
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/PoisselleTubeBCValue.H
+END
+PoisselleTubePoissonDomainBC.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/PoisselleTubePoissonDomainBC.cpp
+END
+ArteryIF.H
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/ArteryIF.H
+END
+PoisselleTubeVelBC.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/PoisselleTubeVelBC.cpp
+END
+PoisselleTubePoissonDomainBC.H
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/svn/Chombo/!svn/ver/19773/release/3.1/releasedExamples/EBAMRINS/src/PoisselleTubePoissonDomainBC.H
+END

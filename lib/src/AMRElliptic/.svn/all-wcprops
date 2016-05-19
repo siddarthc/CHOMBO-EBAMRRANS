@@ -1,0 +1,383 @@
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/Chombo/!svn/ver/21612/release/3.2/lib/src/AMRElliptic
+END
+PetscCompGridPois.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/PetscCompGridPois.cpp
+END
+BCFunc.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/BCFunc.cpp
+END
+PetscCompGridVTO.H
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/PetscCompGridVTO.H
+END
+ResistivityOp.H
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/ResistivityOp.H
+END
+PetscCompGridPois.H
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/PetscCompGridPois.H
+END
+PetscCompGrid.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/Chombo/!svn/ver/21612/release/3.2/lib/src/AMRElliptic/PetscCompGrid.cpp
+END
+BaseLevelTGA.H
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/BaseLevelTGA.H
+END
+BaseLevelBackwardEuler.H
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/BaseLevelBackwardEuler.H
+END
+VCAMRPoissonOp2.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/VCAMRPoissonOp2.cpp
+END
+BaseLevelHeatSolver.H
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/BaseLevelHeatSolver.H
+END
+BCFunc.H
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/BCFunc.H
+END
+NodeBCFunc.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NodeBCFunc.cpp
+END
+VCAMRPoissonOp2.H
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/VCAMRPoissonOp2.H
+END
+NodeBCFunc.H
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NodeBCFunc.H
+END
+NewPoissonOp4F.ChF
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NewPoissonOp4F.ChF
+END
+NewPoissonOp4.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NewPoissonOp4.cpp
+END
+LevelTGAF.ChF
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/LevelTGAF.ChF
+END
+LevelDataOps.H
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/Chombo/!svn/ver/21558/release/3.2/lib/src/AMRElliptic/LevelDataOps.H
+END
+AMRPoissonOp.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/Chombo/!svn/ver/21558/release/3.2/lib/src/AMRElliptic/AMRPoissonOp.cpp
+END
+NodeLevelDataOps.H
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NodeLevelDataOps.H
+END
+MergeSolver.H
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/MergeSolver.H
+END
+LevelTGA.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/LevelTGA.cpp
+END
+MultiGrid.H
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/MultiGrid.H
+END
+GNUmakefile
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/GNUmakefile
+END
+NewPoissonOp.H
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NewPoissonOp.H
+END
+PetscSolver.H
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/PetscSolver.H
+END
+BackwardEuler.H
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/BackwardEuler.H
+END
+AMRTGA.H
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/AMRTGA.H
+END
+MultilevelLinearOp.H
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/MultilevelLinearOp.H
+END
+ViscousTensorOp.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/ViscousTensorOp.cpp
+END
+CoefficientInterpolator.H
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/CoefficientInterpolator.H
+END
+ResistivityOp.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/ResistivityOp.cpp
+END
+CCProjectorF.ChF
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/CCProjectorF.ChF
+END
+VCAMRPoissonOpF.ChF
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/VCAMRPoissonOpF.ChF
+END
+PetscCompGrid.H
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/Chombo/!svn/ver/21610/release/3.2/lib/src/AMRElliptic/PetscCompGrid.H
+END
+NoOpSolver.H
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NoOpSolver.H
+END
+MACProjectorF.ChF
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/MACProjectorF.ChF
+END
+AMRPoissonOpF.ChF
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/AMRPoissonOpF.ChF
+END
+BiCGStabSolver.H
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/Chombo/!svn/ver/21568/release/3.2/lib/src/AMRElliptic/BiCGStabSolver.H
+END
+AMRNodeOp.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/AMRNodeOp.cpp
+END
+NodeLevelDataOps.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NodeLevelDataOps.cpp
+END
+AMRNodeOp.H
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/AMRNodeOp.H
+END
+MultilevelLinearOpI.H
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/MultilevelLinearOpI.H
+END
+NewPoissonOp4.H
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NewPoissonOp4.H
+END
+AMRPoissonOp.H
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/AMRPoissonOp.H
+END
+NewPoissonOp.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NewPoissonOp.cpp
+END
+AMRMultiGrid.H
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/AMRMultiGrid.H
+END
+AMRNodeOpF.ChF
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/AMRNodeOpF.ChF
+END
+LevelTGA.H
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/LevelTGA.H
+END
+ViscousTensorOpF.ChF
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/ViscousTensorOpF.ChF
+END
+PetscSolver.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/PetscSolver.cpp
+END
+LinearSolver.H
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/LinearSolver.H
+END
+RelaxSolver.H
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/RelaxSolver.H
+END
+BackwardEuler.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/BackwardEuler.cpp
+END
+OutputAMRMultiGridInspector.H
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/OutputAMRMultiGridInspector.H
+END
+GMRESSolver.H
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/Chombo/!svn/ver/21612/release/3.2/lib/src/AMRElliptic/GMRESSolver.H
+END
+ResistivityOpF.ChF
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/ResistivityOpF.ChF
+END
+PetscSolverI.H
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/Chombo/!svn/ver/21610/release/3.2/lib/src/AMRElliptic/PetscSolverI.H
+END
+NodeQCFI.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NodeQCFI.cpp
+END
+ViscousTensorOp.H
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/ViscousTensorOp.H
+END
+BaseLevelCrankNicolson.H
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/BaseLevelCrankNicolson.H
+END
+PetscCompGridVTO.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/PetscCompGridVTO.cpp
+END
+NodeQCFI.H
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/Chombo/!svn/ver/21467/release/3.2/lib/src/AMRElliptic/NodeQCFI.H
+END

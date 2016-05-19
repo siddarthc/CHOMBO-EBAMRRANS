@@ -1,0 +1,903 @@
+#ifdef CH_LANG_CC
+/*
+ *      _______              __
+ *     / ___/ /  ___  __ _  / /  ___
+ *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+:q
+ *    \___/_//_/\___/_/_/_/_.__/\___/
+ *    Please refer to Copyright.txt, in Chombo's root directory.
+ */
+#endif
+
+#include <cmath>
+
+#include "EBAMRTransport.H"
+#include "parstream.H"
+#include "ParmParse.H"
+#include "PolyGeom.H"
+
+#include "DebugOut.H"
+#include "Box.H"
+#include "Vector.H"
+#include "IntVectSet.H"
+#include "EBCellFAB.H"
+#include "DisjointBoxLayout.H"
+#include "LayoutIterator.H"
+#include "CH_HDF5.H"
+#include "SPMD.H"
+#include "NeumannPoissonDomainBC.H"
+#include "NeumannPoissonEBBC.H"
+#include "SPMD.H"
+#include "EBLoadBalance.H"
+#include "ProblemDomain.H"
+#include "BoxIterator.H"
+#include "AMRMultiGrid.H"
+#include "EBAMRIO.H"
+#include "BaseIVFactory.H"
+#include "EBViscousTensorOpFactory.H"
+#include "EBConductivityOpFactory.H"
+#include "EBAMRPoissonOpFactory.H"
+//#include "KappaSquareNormal.H"
+
+#include "EBAMRLevel.H"
+#include "EBCellFactory.H"
+#include "BaseIVFactory.H"
+#include "VoFIterator.H"
+#include "EBIndexSpace.H"
+#include "EBArith.H"
+#include "EBAMRDataOps.H"
+//#include "EBLGIntegrator.H"
+#include "EBLevelDataOps.H"
+#include "EBBackwardEuler.H"
+#include "AMR.H"
+
+#include "NamespaceHeader.H"
+
+/******************/
+EBAMRTransport::
+~EBAMRTransport()
+{
+//  delete m_dblPtr;
+  if (m_eblgPtr != NULL) delete m_eblgPtr;
+//  delete m_ebislPtr;
+
+  if (m_advVelPtr !=NULL) delete m_advVelPtr;
+
+  if (m_dtPtr != NULL) delete m_dtPtr;
+
+  if (m_timePtr != NULL) delete m_timePtr;
+}
+/******************/
+/******************/
+EBAMRTransport::
+EBAMRTransport(const EBAMRTransportParams& a_params,
+               const RefCountedPtr<EBPatchAdvectFactory>& a_godFactory,
+               bool  a_externalDriver):
+    m_params(a_params),
+    m_ebPatchGodunovFactory(a_godFactory),
+    m_externalDriver(a_externalDriver)
+{
+  m_isDxSet = false;
+  m_isDBLSet = false;
+  m_isEBLGSet = false;
+  m_isEBISLSet = false;
+//  m_dblPtr = NULL;
+  m_eblgPtr = NULL;
+//i  m_ebislPtr = NULL;
+}
+/******************/ 
+/******************/
+void EBAMRTransport::
+assignDx(RealVect a_dx)
+{
+  m_isDxSet = true;
+  m_dx = a_dx;
+}
+/******************/
+/******************/
+void EBAMRTransport::
+assignDBLPtr(const DisjointBoxLayout* a_dblPtr)
+{
+//  m_isDBLSet = true;
+//  m_dblPtr = a_dblPtr;
+}
+/******************/
+/******************/
+void EBAMRTransport::
+assignEBLGPtr(const EBLevelGrid* a_eblgPtr)
+{
+  m_isEBLGSet = true;
+  m_eblgPtr = a_eblgPtr;
+}
+/******************/
+/******************/
+void EBAMRTransport::
+assignEBISLPtr(const EBISLayout* a_ebislPtr)
+{
+//  m_isEBISLSet = true;
+//  m_ebislPtr = a_ebislPtr;
+}
+/******************/
+/******************/
+void EBAMRTransport::
+define(EBAMRLevel*            a_coarser_level_ptr,
+       const ProblemDomain& a_problem_domain,
+       int                  a_level,
+       int                  a_ref_ratio)
+{
+  if (m_params.m_verbosity >=3)
+    {
+      pout() << "EBAMRTransport::define, level=" << a_level << endl;
+    }
+
+  EBPatchGodunov::useConservativeSource(true);
+  m_isDefined = true;
+  EBAMRLevel::define(a_coarser_level_ptr,
+                   a_problem_domain,
+                   a_level,
+                   a_ref_ratio);
+
+  if (a_coarser_level_ptr != NULL)
+    { 
+      EBAMRTransport* amrg_ptr = 
+        dynamic_cast<EBAMRTransport*>(a_coarser_level_ptr);
+      if (amrg_ptr == NULL)
+        {
+          pout() << "EBAMRG::define:cannot cast  to derived class"
+                 << endl;
+          MayDay::Error();
+        }
+      m_params = amrg_ptr->m_params;
+    }
+
+  if (m_externalDriver)
+    {
+      CH_assert(m_isDxSet );
+    }
+  else 
+    {
+      pout() << "EBAMRTransport class is not setup to drive itself" << endl;
+      MayDay::Error();
+    }
+
+  m_nGhost = 6; // hmm...
+  
+  m_ebPatchGodunov = RefCountedPtr<EBPatchGodunov>();
+  m_ebPatchGodunov = RefCountedPtr<EBPatchGodunov>(m_ebPatchGodunovFactory->create());
+  m_ebPatchGodunov->define(m_problem_domain, m_dx);
+
+  m_nComp      = m_ebPatchGodunov->numConserved();
+  m_nPrim      = m_ebPatchGodunov->numPrimitives();
+  m_stateNames = m_ebPatchGodunov->stateNames();
+  m_primNames  = m_ebPatchGodunov->primNames();
+  m_ref_ratio  = a_ref_ratio;
+}
+/******************/
+/******************/
+Real EBAMRTransport::advance()
+{
+
+}
+/******************/
+/******************/
+void EBAMRTransport::postTimeStep()
+{
+//  pout() << " in EBAMRTransport postTimeStep for level " << m_level << endl;
+
+ // Average the finer grid levels to be consistent with this one.
+
+  if (m_hasFiner)
+    {
+      Interval interv(0, m_nComp-1);
+      EBAMRTransport* finePtr = getFinerLevel();
+      finePtr->m_ebCoarseAverage.average(m_stateNew,
+                                         finePtr->m_stateNew,
+                                         interv);
+    }
+
+ // this does the refluxing and redistribution evil dance
+  postTimeStepRefluxRedistDance();
+  m_ebLevelGodunov.floorPrimitives(m_stateNew); 
+
+  CH_assert(m_isEBLGSet)
+
+  for(DataIterator dit = m_eblg.getDBL().dataIterator(); dit.ok(); ++dit)
+    {
+      m_massDiff[dit()].setVal(0.0);
+      m_redisRHS[dit()].setVal(0.0);
+    }
+}
+/******************/
+/******************/
+void
+EBAMRTransport::postTimeStepRefluxRedistDance()
+{
+  resetWeights();
+  refluxRedistInteraction();
+  coarseFineRedistribution(Interval(0, m_nComp-1));
+  explicitReflux(Interval(0, m_nComp-1));
+  ParmParse pp;
+  bool turn_off_reflux = false;
+  pp.query("turn_off_implicit_reflux", turn_off_reflux);
+  if(turn_off_reflux)
+    {
+      pout() << "implicit reflux turned off" << endl;
+    }
+  if(m_params.m_doDiffusion && !turn_off_reflux)
+    {
+      refluxRHSTerm();
+      //      defineSolvers();
+      implicitReflux();
+    }
+}
+/******************/
+/******************/
+ void EBAMRTransport::implicitReflux()
+{
+  MayDay::Error("EBAMRTransport::implicitReflux is not set");
+} 
+/******************/
+/******************/
+ void EBAMRTransport::refluxRedistInteraction()
+{
+  //the flux register must modify the redistribution
+  //registers
+  if(m_hasFiner  && (!s_noEBCF))
+    {
+      Real scale = -1.0/m_dx[0];
+      Interval interv(0, m_nComp-1);
+      m_divFFluxRegister.incrementRedistRegister(m_ebCoarToFineRedist,
+                                                 interv, scale);
+
+      m_divFFluxRegister.incrementRedistRegister(m_ebCoarToCoarRedist,
+                                                 interv, scale);
+    } 
+}
+/******************/
+/******************/
+ void EBAMRTransport::resetWeights()
+{
+  //if use mass weighting, need to
+  //fix weights of redistribution objects
+  if(m_params.m_useMassRedist)
+    {
+      int densevar = m_ebPatchGodunov->densityIndex();
+      m_stateNew.exchange(Interval(0, m_nComp-1));
+      m_ebLevelRedist.resetWeights(m_stateNew, densevar);
+
+      if(m_hasCoarser && (!s_noEBCF))
+        {
+          EBAMRTransport* coarPtr = getCoarserLevel();
+          coarPtr->m_stateNew.exchange(Interval(0, m_nComp-1));
+          m_ebFineToCoarRedist.resetWeights(coarPtr->m_stateNew, densevar);
+        }
+      if(m_hasFiner && (!s_noEBCF))
+        {
+          m_ebCoarToFineRedist.resetWeights(m_stateNew, densevar);
+          m_ebCoarToCoarRedist.resetWeights(m_stateNew, densevar);
+        }
+    }
+} 
+/******************/
+/******************/
+void EBAMRTransport::explicitReflux(const Interval& a_interv)
+{
+  if (m_hasFiner)
+    {
+      Real scale = -1.0/m_dx[0];
+      m_divFFluxRegister.reflux(m_stateNew, a_interv, scale);
+      m_divFFluxRegister.setToZero();
+    }
+}
+/******************/
+/******************/
+void EBAMRTransport::coarseFineRedistribution(const Interval& a_interv)
+{
+  if(m_hasCoarser)
+    {
+      if(m_params.m_doSmushing && (!s_noEBCF))
+        {
+          //redistibute to coarser level
+          EBAMRTransport* coarPtr = getCoarserLevel();
+          //put mass directly into state
+          m_ebFineToCoarRedist.redistribute(coarPtr->m_stateNew, a_interv);
+          m_ebFineToCoarRedist.setToZero();
+        }
+    }
+  if (m_hasFiner)
+    {
+      EBAMRTransport* finePtr = getFinerLevel();
+      if(m_params.m_doSmushing  && (!s_noEBCF))
+        {
+          //redistibute to finer level
+          m_ebCoarToFineRedist.redistribute(finePtr->m_stateNew, a_interv);
+          //do the re redistirubtion
+          m_ebCoarToCoarRedist.redistribute(         m_stateNew, a_interv);
+          m_ebCoarToFineRedist.setToZero();
+          m_ebCoarToCoarRedist.setToZero();
+        }
+    }
+}
+/******************/
+/******************/
+ void EBAMRTransport::refluxRHSTerm()
+{
+  MayDay::Error("EBAMRTransport::refluxRHSTerm is not set");
+}
+/******************/
+/******************/
+void EBAMRTransport::tagCells(IntVectSet& a_tags)
+{
+}
+/******************/
+/******************/
+void EBAMRTransport::tagCellsInit(IntVectSet& a_tags)
+{
+}
+/******************/
+/******************/
+void EBAMRTransport::regrid(const Vector<Box>& a_new_grids)
+{
+  // only for the case of being driven by external driver for now
+  CH_assert(m_externalDriver);
+  CH_assert(m_oldEBLGSet);
+  CH_assert(m_isEBLGSet);  
+
+  //first save old data
+  // save data for later copy
+
+  // eblgOld is eblg before regrid
+  // it is assumed that regridding already happened in the driver class
+  //      eblgNew is set through the pointer
+
+  EBLevelGrid eblgOld = m_eblgOld;
+  EBLevelGrid eblgNew = m_eblg;
+  
+  EBISLayout ebislOld = eblgOld.getEBISL();
+  EBISLayout ebislNew = eblgNew.getEBISL();
+
+  EBCellFactory factoryOld(ebislOld);
+  IntVect ivGhost = m_nGhost*IntVect::Unit;
+  LevelData<EBCellFAB> stateSaved(eblgOld.getDBL(), m_nComp, ivGhost, factoryOld);
+  Interval interv(0,m_nComp-1);
+  stateSaved.define(eblgOld.getDBL(), m_nComp, ivGhost, factoryOld);
+  m_stateNew.copyTo(interv, stateSaved, interv);
+
+  // set up data structures
+  levelSetup();
+
+  // interpolate to coarser level
+  if (m_hasCoarser)
+    {
+      EBAMRTransport* coarPtr = getCoarserLevel();
+      m_ebFineInterp.interpolate(m_stateNew,
+                                 coarPtr->m_stateNew,
+                                 interv);
+    }
+
+  // copy from old state
+  stateSaved.copyTo(interv,m_stateNew, interv);
+  m_stateNew.copyTo(interv,m_stateOld, interv);
+}
+/******************/
+/******************/
+void EBAMRTransport::
+preRegrid(int                         a_base_level,
+          const Vector<Vector<Box> >& a_new_grids)
+{
+   
+}
+/******************/
+/******************/
+void EBAMRTransport::postRegrid(int a_base_level)
+{
+  if(m_level == a_base_level) defineSolvers();
+}
+/******************/
+/******************/
+void EBAMRTransport::postInitialGrid(const bool a_restart)
+{
+  if(m_level == 0) defineSolvers();
+}
+/******************/
+/******************/
+void EBAMRTransport::defineSolvers()
+{
+  defineFactories(true);
+
+  if (m_params.m_doDiffusion)
+   {
+     MayDay::Error("diffusion set not set in EBAMRTransport");
+   }
+}
+/******************/
+/******************/
+void EBAMRTransport::defineFactories(bool a_atHalfTime)
+{
+  if (m_params.m_doDiffusion)
+    {
+      MayDay::Error("diffusion set not set in EBAMRTransport");
+    }
+}
+/******************/
+/******************/
+void EBAMRTransport::initialGrid(const Vector<Box>& a_new_grids)
+{
+  if (m_externalDriver)
+    {
+      CH_assert(m_isEBLGSet == true);
+//      CH_assert(m_eblgPtr != NULL);
+      levelSetup(); 
+    }
+  else 
+    {
+      pout() << "EBAMRTransport::initialGrid not setup for self driving case" << endl;
+      MayDay::Error();
+    }  
+}
+/******************/
+/******************/
+void EBAMRTransport::syncWithFineLevel()
+{
+  //stuff that needs to be setup from the finer
+  //level.  A bunch of objects depend upon the layouts
+  //from both levels and the finer level changes more
+  //often from regrid so this needs to be called from the finer
+  //level
+  CH_assert(m_hasFiner);
+  if(m_hasFiner)
+    {
+      EBAMRTransport* finePtr = getFinerLevel();
+      int nRefFine = refRatio();
+//      const EBLevelGrid* finer_eblgPtr = finePtr->m_eblgPtr;
+      const EBLevelGrid finer_eblg       = finePtr->m_eblg;   
+      const DisjointBoxLayout& finer_dbl = finer_eblg.getDBL();
+      const EBISLayout& finer_ebisl      = finer_eblg.getEBISL();
+      // maintain flux registers
+      m_divFFluxRegister.define(finer_dbl,
+                                m_eblg.getDBL(),
+                                finer_ebisl,
+                                m_eblg.getEBISL(),
+                                m_eblg.getDomain().domainBox(),
+                                nRefFine,
+                                m_nComp, Chombo_EBIS::instance(), s_noEBCF);
+
+      m_scalarFluxRegister.define(finer_dbl,
+                                  m_eblg.getDBL(),
+                                  finer_ebisl,
+                                  m_eblg.getEBISL(),
+                                  m_eblg.getDomain().domainBox(),
+                                  nRefFine,
+                                  SpaceDim, Chombo_EBIS::instance(), s_noEBCF);
+
+      //define fine to coarse redistribution object
+      //for now set to volume weighting
+      if (!s_noEBCF)
+        {
+          m_ebCoarToFineRedist.define(finer_eblg, m_eblg, nRefFine , m_nComp, 1);
+          //define coarse to coarse redistribution object
+          m_ebCoarToCoarRedist.define(finer_eblg, m_eblg, nRefFine , m_nComp, 1);
+        }
+
+      //set all the registers to zero
+      if(!s_noEBCF)
+        {
+          m_ebCoarToFineRedist.setToZero();
+          m_ebCoarToCoarRedist.setToZero();
+        }
+      m_divFFluxRegister.setToZero();
+      m_scalarFluxRegister.setToZero();
+    }
+}
+/******************/
+/******************/
+void EBAMRTransport::levelSetup()
+{
+  m_nGhost = m_eblg.getGhost();
+  
+  EBCellFactory factoryNew(m_eblg.getEBISL());
+  IntVect ivGhost = m_nGhost*IntVect::Unit;
+  m_stateNew.define(m_eblg.getDBL(),m_nComp, ivGhost, factoryNew);
+  m_stateOld.define(m_eblg.getDBL(),m_nComp, ivGhost, factoryNew);
+  m_redisRHS.define(m_eblg.getDBL(),m_nComp, ivGhost, factoryNew);
+  EBLevelDataOps::setVal(m_redisRHS, 0.0);
+
+  m_sets.define(m_eblg.getDBL());
+  for(DataIterator dit = m_eblg.getDBL().dataIterator(); dit.ok(); ++dit)
+    {
+      m_sets[dit()] = m_eblg.getEBISL()[dit()].getIrregIVS(m_eblg.getDBL().get(dit()));
+    }
+  EBCellFactory       cellFact(m_eblg.getEBISL());
+  EBFluxFactory       fluxFact(m_eblg.getEBISL());
+  BaseIVFactory<Real> bivfFact(m_eblg.getEBISL(), m_sets);
+
+/*  
+  define diffusion coefficients
+*/
+
+  EBAMRTransport* coarPtr = getCoarserLevel();
+  EBAMRTransport* finePtr = getFinerLevel();       
+
+  m_hasCoarser = (coarPtr != NULL);
+  m_hasFiner   = (finePtr != NULL);
+
+  //define redistribution object for this level
+  //for now set to volume weighting
+  m_ebLevelRedist.define(m_eblg.getDBL(),
+                         m_eblg.getEBISL(),
+                         m_eblg.getDomain(),
+                         m_nComp);
+
+   if (m_hasCoarser)
+    {
+      int nRefCrse = m_coarser_level_ptr->refRatio();
+      const EBLevelGrid coEBLG = coarPtr->m_eblg;
+
+      m_ebCoarseAverage.define(m_eblg.getDBL(),
+                               coEBLG.getDBL(),
+                               m_eblg.getEBISL(),
+                               coEBLG.getEBISL(),
+                               coEBLG.getDomain().domainBox(),
+                               nRefCrse,
+                               m_nComp, Chombo_EBIS::instance());
+      m_ebFineInterp.define(m_eblg.getDBL(),
+                            coEBLG.getDBL(),
+                            m_eblg.getEBISL(),
+                            coEBLG.getEBISL(),
+                            coEBLG.getDomain().domainBox(),
+                            nRefCrse,
+                            m_nComp);
+
+      // maintain levelgodunov
+      m_ebLevelGodunov.define(m_eblg.getDBL(),
+                              coEBLG.getDBL(),
+                              m_eblg.getEBISL(),
+                              coEBLG.getEBISL(),
+                              m_eblg.getDomain(),
+                              nRefCrse,
+                              m_dx,
+                              m_hasCoarser,
+                              m_hasFiner,
+                              m_ebPatchGodunovFactory);
+
+      //define fine to coarse redistribution object
+      //for now set to volume weighting
+      if(!s_noEBCF)
+        {
+          CH_TIME("fineToCoar_defs");
+          m_ebFineToCoarRedist.define(m_eblg, coEBLG,
+                                      nRefCrse, m_nComp,
+                                      m_params.m_redistRad);
+
+          m_ebFineToCoarRedist.setToZero();
+        }
+
+      int nvarQuad = 1; 
+
+      m_quadCFI = RefCountedPtr<EBQuadCFInterp>
+        (new EBQuadCFInterp(m_eblg.getDBL(),
+                            coEBLG.getDBL(),
+                            m_eblg.getEBISL(),
+                            coEBLG.getEBISL(),
+                            coEBLG.getDomain(),
+                            nRefCrse, nvarQuad,
+                            (*m_eblg.getCFIVS()),
+                            Chombo_EBIS::instance()));
+
+      coarPtr->syncWithFineLevel();
+    }
+  else
+    {
+      m_quadCFI = RefCountedPtr<EBQuadCFInterp>(new EBQuadCFInterp());
+      m_ebLevelGodunov.define(m_eblg.getDBL(),
+                              DisjointBoxLayout(),
+                              m_eblg.getEBISL(),
+                              EBISLayout(),
+                              m_eblg.getDomain(),
+                              m_ref_ratio,
+                              m_dx,
+                              m_hasCoarser,
+                              m_hasFiner,
+                              m_ebPatchGodunovFactory);
+    }
+
+  m_sets.define(m_eblg.getDBL());
+  for(DataIterator dit = m_eblg.getDBL().dataIterator();
+      dit.ok(); ++dit)
+    {
+      Box thisBox = m_eblg.getDBL().get(dit());
+      m_sets[dit()] = m_eblg.getEBISL()[dit()].getIrregIVS(thisBox);
+    }
+  BaseIVFactory<Real> factory(m_eblg.getEBISL(), m_sets);
+  //the ghost cells on the mass redistribution array
+  //are tied to the redistribution radius
+  m_massDiff.define(m_eblg.getDBL(), m_nComp, ivGhost, factory);
+  for(DataIterator dit = m_eblg.getDBL().dataIterator(); dit.ok(); ++dit)
+    {
+      m_massDiff[dit()].setVal(0.0);
+    }
+}
+/******************/
+/******************/
+EBAMRTransport*
+EBAMRTransport::
+getCoarserLevel() const
+{
+  EBAMRTransport* retval = NULL;
+  if(m_coarser_level_ptr != NULL)
+    {
+      retval = dynamic_cast <EBAMRTransport*> (m_coarser_level_ptr);
+
+      if (retval == NULL)
+        {
+          pout() << "EBAMRG::getCoarserLevel: dynamic cast failed"
+                 << endl;
+          MayDay::Error();
+        }
+    }
+  return retval;
+}
+/******************/
+/******************/
+EBAMRTransport*
+EBAMRTransport::
+getFinerLevel() const
+{
+  EBAMRTransport* retval = NULL;
+  if(m_finer_level_ptr != NULL)
+    {
+      retval = dynamic_cast<EBAMRTransport*>(m_finer_level_ptr);
+
+      if (retval == NULL)
+        {
+          pout() << "EBAMRG::getFinerLevel: dynamic cast failed"
+                 << endl;
+          MayDay::Error();
+        }
+    }
+  return retval;
+}
+/******************/ 
+/******************/
+void EBAMRTransport::initialData()
+{
+
+  const EBPhysIBC* const ebphysIBCPtr = m_ebPatchGodunov->getEBPhysIBC();
+
+  ebphysIBCPtr->initialize(m_stateNew, m_eblg.getEBISL());
+  ebphysIBCPtr->initialize(m_stateOld, m_eblg.getEBISL());
+
+}
+/******************/
+/******************/
+void EBAMRTransport::postInitialize()
+{
+    // Average the finer grid levels to be consistent with this one.
+  if (m_hasFiner)
+    {
+      Interval interv(0, m_nComp-1);
+      EBAMRTransport* finePtr = getFinerLevel();
+      finePtr->m_ebCoarseAverage.average(m_stateNew,
+                                         finePtr->m_stateNew,
+                                         interv);
+    }
+
+/*
+  // only if the equation being solved conserves something
+  // Here we record the totals for the conserved quantities on grid level 0.
+  if(!m_hasCoarser)
+    {
+      // Sum the quantities.
+      int densityIndex = m_ebPatchGodunov->densityIndex();
+      sumConserved(m_originalMass, densityIndex);
+    }
+  //  if(m_level==0) defineSolvers(); 
+*/
+}
+/******************/
+/******************/
+void EBAMRTransport::
+sumConserved(Real& a_sumcons,
+             const int& a_ivar) const
+{
+  Real sumgrid = 0;
+  for(DataIterator dit= m_eblg.getDBL().dataIterator(); dit.ok(); ++dit)
+    {
+      const EBCellFAB& state = m_stateNew[dit()];
+      Box thisBox = m_eblg.getDBL().get(dit());
+      IntVectSet uberIVS(thisBox);
+      const EBISBox& ebisBox = m_eblg.getEBISL()[dit()];
+      for(VoFIterator vofit(uberIVS, ebisBox.getEBGraph());
+          vofit.ok(); ++vofit)
+        {
+          const VolIndex& vof = vofit();
+          Real consVal = state(vof, a_ivar);
+          Real volFrac = ebisBox.volFrac(vof);
+          Real volume = volFrac;
+          sumgrid += consVal*volume;
+        }
+    }
+
+  Vector<Real> all_sum;
+  gather(all_sum,sumgrid,uniqueProc(SerialTask::compute));
+  Real sumallgrid = 0.;
+  if (procID() == uniqueProc(SerialTask::compute))
+    {
+      for (int i = 0; i < all_sum.size(); ++i)
+        {
+          sumallgrid += all_sum[i];
+        }
+    }
+  broadcast(sumallgrid,uniqueProc(SerialTask::compute));
+  a_sumcons = sumallgrid;
+}
+/******************/
+/******************/
+Real EBAMRTransport::computeDt()
+{
+  // dt is provided by external driver
+  m_dt = *m_dtPtr;
+  return m_dt;
+}
+/******************/
+/******************/
+Real EBAMRTransport::computeInitialDt()
+{
+  // dt is provided by external driver
+  m_dt = *m_dtPtr;
+  return m_dt;
+}
+/******************/
+/******************/
+void EBAMRTransport::assignAdvVelPtr(const LevelData<EBFluxFAB>* a_advVelPtr)
+{
+  m_advVelPtr = a_advVelPtr;
+}
+/******************/
+/******************/
+#ifdef CH_USE_HDF5
+/******************/
+/******************/
+void EBAMRTransport::writePlotHeaderOld    (HDF5Handle& a_handle) const
+{
+}
+/******************/
+/******************/
+void EBAMRTransport::writePlotLevelOld     (HDF5Handle& a_handle) const
+{
+}
+/******************/
+/******************/
+void EBAMRTransport::writePlotHeader       (HDF5Handle& a_handle) const
+{
+}
+/******************/
+/******************/
+void EBAMRTransport::writePlotLevel        (HDF5Handle& a_handle) const
+{
+}
+/******************/
+/******************/
+void EBAMRTransport::writeCheckpointHeader (HDF5Handle& a_handle) const
+{
+}
+/******************/
+/******************/
+void EBAMRTransport::writeCheckpointLevel  (HDF5Handle& a_handle) const
+{
+}
+/******************/
+/******************/
+void EBAMRTransport::readCheckpointHeader  (HDF5Handle& a_handle)
+{
+  if (m_params.m_verbosity >= 3)
+    {
+      pout() << "EBAMRCNS::readCheckpointHeader" << endl;
+    }
+
+  //stuff in non-eb checkpoint header is already
+  //set in the define function, such as
+  // Setup the number of components
+  // Setup the component names
+  // So i will eliminate the middleman. 
+}
+/******************/
+/******************/
+void EBAMRTransport::readCheckpointLevel   (HDF5Handle& a_handle)
+{
+  CH_assert(m_isDefined);
+  // only the case driven by external driver for now
+  CH_assert(m_externalDriver);
+  CH_assert(m_isEBLGSet);
+//  CH_assert(m_eblgPtr != NULL);
+
+  if (m_params.m_verbosity >= 3)
+    {
+      pout() << "EBAMRCNS::readCheckpointLevel" << endl;
+    }
+
+  // Setup the level string
+  char levelStr[20];
+  sprintf(levelStr,"%d",m_level);
+  const std::string label = std::string("level_") + levelStr;
+
+  // Read the header for this level
+  a_handle.setGroup(label);
+
+  HDF5HeaderData header;
+  header.readFromFile(a_handle);
+
+  // Get the refinement ratio
+  if (header.m_int.find("ref_ratio") == header.m_int.end())
+    {
+      MayDay::Error("::readCheckpointLevel: file does not contain ref_ratio");
+    }
+  m_ref_ratio = header.m_int["ref_ratio"];
+
+  //reasons for deviations from non-eb stuff
+  // the tag buffer size is set by the factory.
+  // dx is set in the define function
+  // the problem domain is set in the define function
+
+  // Get dt
+  if (header.m_real.find("dt") == header.m_real.end())
+    {
+      MayDay::Error("readCheckpointLevel: file does not contain dt");
+    }
+  m_dt = header.m_real["dt"];
+
+  // Get the grids
+  Vector<Box> vboxGrids;
+  const int gridStatus = read(a_handle, vboxGrids);
+  if (gridStatus != 0)
+    {
+      MayDay::Error("readCheckpointLevel: file has no grids");
+    }
+
+  //this keeps the order of the AMRLevel m_level_grids
+  //consistent with m_eblg.getDBL()
+  LayoutIterator lit = m_eblg.getDBL().layoutIterator();
+  for (lit.begin(); lit.ok(); ++lit)
+    {
+      Box b = m_eblg.getDBL().get(lit());
+      m_level_grids.push_back(b);
+    }
+
+  EBCellFactory factoryNew(m_eblg.getEBISL());
+  //m_nghost is set in define function
+  IntVect ivGhost = m_nGhost*IntVect::Unit;
+  m_stateNew.define(m_eblg.getDBL(),m_nComp, ivGhost, factoryNew);
+  m_stateOld.define(m_eblg.getDBL(),m_nComp, ivGhost, factoryNew);
+  m_redisRHS.define(m_eblg.getDBL(),m_nComp, ivGhost, factoryNew);
+  EBLevelDataOps::setVal(m_redisRHS, 0.0);
+
+  // Set up data structures
+  levelSetup();
+  //  Interval vars(0, m_nComp-1);
+  //the false says to not redefine the data
+  int dataStatusNew = read<EBCellFAB>(a_handle,
+                                      m_stateNew,
+                                      "dataNew",
+                                      m_eblg.getDBL(),
+                                      Interval(),
+                                      false);
+
+  int dataStatusOld = read<EBCellFAB>(a_handle,
+                                      m_stateOld,
+                                      "dataOld",
+                                      m_eblg.getDBL(),
+                                      Interval(),
+                                      false);
+
+  if ((dataStatusNew != 0) || (dataStatusOld != 0))
+    {
+      MayDay::Error("file does not contain state data");
+    }
+
+}
+/******************/
+/******************/
+#endif
+
+#include "NamespaceFooter.H"
+

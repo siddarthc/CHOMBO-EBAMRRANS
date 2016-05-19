@@ -1,0 +1,24 @@
+#include "scalarDiffuseDomainBC.H"
+
+/*************/
+scalarDiffuseDomainBC::
+scalarDiffuseDomain(Real a_alpha):
+m_alpha(a_alpha)
+{
+
+}
+/**************/
+void scalarDiffuseDomainBC::
+getFaceFlux(BaseFab<Real>&        a_faceFlux,
+            const BaseFab<Real>&  a_phi,
+            const RealVect&       a_probLo,
+            const RealVect&       a_dx,
+            const int&            a_idir,
+            const Side::LoHiSide& a_side,
+            const DataIndex&      a_dit,
+            const Real&           a_time,
+            const bool&           a_useHomogeneous)
+{
+  Real scalarVal = 0.0;
+  
+}

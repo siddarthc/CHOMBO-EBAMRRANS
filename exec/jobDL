@@ -1,0 +1,18 @@
+#!/bin/bash
+                          # Use Bash Shell
+
+#SBATCH -J jets          #Job name
+#SBATCH -o jets.%j.out   # stdout; %j expands jobid
+#SBATCH -e jets.%j.err   # stderr; skip to combine stdout and stderr
+#SBATCH -p normal        # queue
+#SBATCH -N 32              # Number of nodes, not cores (16 cores/node)
+#SBATCH -n 512             # Total number of MPI tasks (if omitted, n=N)
+#SBATCH -t 02:00:00       # max time
+
+#SBATCH --mail-user=siddarth.chintamani@mavs.uta.edu
+#SBATCH --mail-type=ALL
+
+#SBATCH -A HypersonicMixing
+
+                          # Run the MPI executable named "addexe"
+ibrun ./transportDriver3d.Linux.mpicxx.ifort.MPI.ex jet.inputs

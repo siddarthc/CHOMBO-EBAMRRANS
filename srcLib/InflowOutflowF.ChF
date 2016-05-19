@@ -1,0 +1,184 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+      subroutine setjet2params(
+     &    chf_const_int[aujet2flowDir],
+     &    chf_const_real[aujet2maxVel],
+     &    chf_const_real[aujet2radius],
+     &    chf_const_real[aujet2viscosity],
+     &    chf_const_vr[aujet2tubeorig],
+     &    chf_const_vr[aujet2tubeend])
+
+      integer spacedim, ivar
+
+#include "InflowOutflowCommon.fh"
+
+      spacedim = CH_SPACEDIM
+      jet2radius = aujet2radius
+      jet2flowDir = aujet2flowDir
+      jet2maxVel = aujet2maxVel
+      jet2viscosity = aujet2viscosity      
+
+      do ivar = 0,spacedim-1
+        jet2tubeOrig(ivar) = aujet2tubeorig(ivar)
+        jet2tubeEnd(ivar) = aujet2tubeend(ivar)
+      enddo
+
+      return 
+      end
+cccccccccccccccccccccccc
+      subroutine jet2velinit(
+     &    chf_fra[u],
+     &    chf_const_real[dx],
+     &    chf_box[box])
+
+      integer chf_ddecl[i;j;k]
+      integer iv(0:CH_SPACEDIM-1)
+      integer ivar, spacedim
+      real_t velocity(0:CH_SPACEDIM-1)
+
+      chf_multido[box;i;j;k]
+
+      chf_dterm[
+      iv(0) = i;
+      iv(1) = j;
+      iv(2) = k]
+
+      call pointjet2velinit(velocity, iv, dx)
+
+      do ivar = 0,CH_SPACEDIM-1
+        u(chf_ix[i;j;k],ivar) = velocity(ivar)
+      enddo
+
+      chf_enddo
+
+      return
+      end
+cccccccccccccccccc
+      subroutine pointjet2velinit(
+     &    chf_realvect[velocity],
+     &    chf_const_intvect[iv],
+     &    chf_const_real[dx])
+
+      integer chf_ddecl[itan; inorm1; inorm2]
+      integer spacedim
+      logical isinsidetube
+      real_t distance
+ 
+#include "InflowOutflowCommon.fh"
+     
+cccc specializing this for this case
+cccc assumes that the tubeorigin[flowDir] > tubeend[flowDir]
+cccc     and the tube origin is aligned with flowDir
+
+        
+      spacedim = CH_SPACEDIM
+      isinsidetube = .false.
+      
+      chf_dterm[
+      itan = jet2flowDir;
+      inorm1 = mod(jet2flowDir +1,spacedim);
+      inorm2 = mod(jet2flowDir +2,spacedim)]
+
+      distance = 2*jet2radius
+
+      if (((iv(itan) + 0.5)*dx .ge. jet2tubeEnd(itan)) .and. (iv(itan) + 0.5)*dx. le. (jet2tubeOrig(itan))) then 
+        chf_dterm[
+        distance = 0.0; + ((iv(inorm1) + 0.5)*dx - jet2tubeOrig(inorm1))**2; + ((iv(inorm2) + 0.5)*dx - jet2tubeOrig(inorm2))**2]
+      end if
+
+      distance = sqrt(distance)
+      if (distance .le. jet2radius) then
+        isinsidetube = .true.
+      end if
+     
+      chf_dterm[
+      velocity(itan) = 0.0;
+      velocity(inorm1) = 0.0;
+      velocity(inorm2) = 0.0]
+
+      if (isinsidetube) then
+        velocity(itan) = (1.0 - (distance*distance)/(jet2radius*jet2radius))*jet2maxVel;
+      end if
+      return 
+      end
+    
+cccccccccccccccccccccccc
+      subroutine jet2gradPinit(
+     &    chf_fra[gP],
+     &    chf_const_real[dx],
+     &    chf_box[box])
+
+      integer chf_ddecl[i;j;k]
+      integer iv(0:CH_SPACEDIM-1)
+      integer ivar, spacedim
+      real_t gradP(0:CH_SPACEDIM-1)
+
+      chf_multido[box;i;j;k]
+
+      chf_dterm[
+      iv(0) = i;
+      iv(1) = j;
+      iv(2) = k]
+
+      call pointjet2gradPinit(gradP, iv, dx)
+
+      do ivar = 0,CH_SPACEDIM-1
+        gP(chf_ix[i;j;k],ivar) = gradP(ivar)
+      enddo
+
+      chf_enddo
+
+      return
+      end
+cccccccccccccccccc
+      subroutine pointjet2gradPinit(
+     &    chf_realvect[gradP],
+     &    chf_const_intvect[iv],
+     &    chf_const_real[dx])
+
+      integer chf_ddecl[itan; inorm1; inorm2]
+      integer spacedim
+      logical isinsidetube
+      real_t distance
+ 
+#include "InflowOutflowCommon.fh"
+     
+cccc specializing this for this case
+cccc assumes that the tubeorigin[flowDir] > tubeend[flowDir]
+cccc     and the tube origin is aligned with flowDir
+
+      spacedim = CH_SPACEDIM
+      isinsidetube = .false.
+      
+      chf_dterm[
+      itan = jet2flowDir;
+      inorm1 = mod(jet2flowDir +1,spacedim);
+      inorm2 = mod(jet2flowDir +2,spacedim)]
+
+      distance = 2*jet2radius
+
+      if (((iv(itan) + 0.5)*dx .ge. jet2tubeEnd(itan)) .and. (iv(itan) + 0.5)*dx. le. (jet2tubeOrig(itan))) then 
+        chf_dterm[
+        distance = 0.0; + ((iv(inorm1) + 0.5)*dx - jet2tubeOrig(inorm1))**2; + ((iv(inorm2) + 0.5)*dx - jet2tubeOrig(inorm2))**2]
+      end if
+
+      distance = sqrt(distance)
+      if (distance .le. jet2radius) then
+        isinsidetube = .true.
+      end if
+     
+      chf_dterm[
+      gradP(itan) = 0.0;
+      gradP(inorm1) = 0.0;
+      gradP(inorm2) = 0.0]
+
+      if (isinsidetube) then
+        gradP(itan) = -(8.0*jet2viscosity/jet2radius**2)*jet2maxVel;
+      end if
+        
+      return 
+      end    
