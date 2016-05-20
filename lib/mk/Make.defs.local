@@ -105,59 +105,56 @@ makefiles+=Make.defs.local
 ## Override the default values here
 
 ## Configuration variables
-DIM           = 2
-DEBUG         = TRUE
-OPT           = TRUE
-PRECISION     = DOUBLE
-PROFILE       = FALSE
-CXX           = mpiCC
-FC            = mpif90
+#DIM           =
+#DEBUG         =
+#OPT           =
+#PRECISION     =
+#PROFILE       =
+CXX           = mpicxx
+FC            = ifort
 MPI           = TRUE
 ## Note: don't set the MPICXX variable if you don't have MPI installed
-MPICXX        = mpiCC
+MPICXX        = mpicxx
 #OBJMODEL      =
 #XTRACONFIG    =
 ## Optional features
-USE_64        = TRUE
-#USE_TIMER     = TRUE
+USE_64        = FALSE
+USE_TIMER     = TRUE
 #USE_COMPLEX   =
 USE_EB        = TRUE
 #USE_CCSE      =
 USE_HDF       = TRUE
-HDFINCFLAGS   = -I/home/araman/hdf5/serial/include/ -DH5_USE_16_API #$(TACC_HDF5_INC)
-HDFLIBFLAGS   = -L/home/araman/hdf5/serial/lib/ -Wl,-rpath,/home/araman/hdf5/serial/lib/ -lhdf5   -lz # 
+HDFINCFLAGS   = -I/opt/apps/intel16/hdf5/1.8.16/x86_64/include -DH5_USE_16_API #$(TACC_HDF5_INC)
+HDFLIBFLAGS   = -L/opt/apps/intel16/hdf5/1.8.16/x86_64/lib -Wl,-rpath,/opt/apps/intel16/hdf5/1.8.16/x86_64/lib -lhdf5   -lz # 
 ## Note: don't set the HDFMPI* variables if you don't have parallel HDF installed
 #HDFMPIINCFLAGS= -I/opt/apps/intel11_1/mvapich2_1_6/phdf5/1.8.8/include/ -DH5_USE_16_API
 #HDFMPILIBFLAGS= -L/opt/apps/intel11_1/mvapich2_1_6/phdf5/1.8.8/lib -Wl,-rpath,/opt/apps/intel11_1/mvapich2_1_6/phdf5/1.8.8/lib -lhdf5   -lz
 #HDFMPILIBFLAGS= -L/opt/apps/intel11_1/mvapich2_1_6/phdf5/1.8.5/lib  -lhdf5   -lsz -lz -lm
-#HDFMPIINCFLAGS= -I/opt/apps/intel13/mvapich2_1_9/phdf5/1.8.9/include  -DH5_USE_16_API
-#HDFMPILIBFLAGS= -L/opt/apps/intel13/mvapich2_1_9/phdf5/1.8.9/lib  -lhdf5   -lsz -lz -lm
-HDFMPIINCFLAGS= -I/home/araman/hdf5/parallel/include/ -DHF_USE_16_API
-HDFMPILIBFLAGS= -L/home/araman/hdf5/parallel/lib/ -lhdf5 -lz
-
-USE_MF        = FALSE
+HDFMPIINCFLAGS= -I/opt/apps/intel16/cray_mpich_7_2/phdf5/1.8.16/x86_64/include  -DH5_USE_16_API
+HDFMPILIBFLAGS= -L/opt/apps/intel16/cray_mpich_7_2/phdf5/1.8.16/x86_64/lib  -lhdf5   -lsz -lz -lm
+USE_MF        = TRUE
 #USE_MT        =
 #USE_SETVAL    =
 #CH_AR         =
-#CPP           = cpp -C -E -P
+CPP           = cpp -C -E -P
 #DOXYGEN       =
 #LD            =
 #PERL          =
 #RANLIB        =
 #cppdbgflags   =
 #cppoptflags   =
-#cxxcppflags   = /home/araman/hdf5/serial/include/ /home/araman/hdf5/parallel/include/
-#cxxdbgflags   = -g -O0 
-#cxxoptflags   = -O2
+cxxcppflags   = $(HDFINCFLAGS) $(HDFMPIINCFLAGS)
+cxxdbgflags   = -g -O0 
+cxxoptflags   = -O2
 #cxxprofflags  =
 #fcppflags     =
-#fdbgflags     = -g -O0
-#foptflags     = -O2
+fdbgflags     = -g -O0
+foptflags     = -O2
 #fprofflags    =
 #flibflags     =
-lddbgflags    = -ldl
+#lddbgflags    =
 #ldoptflags    =
 #ldprofflags   =
-syslibflags   = -lstdc++ -lz -lgfortran
+syslibflags   = -L/opt/apps/intel16/hdf5/1.8.16/x86_64/lib -Wl,-rpath,/opt/apps/intel16/hdf5/1.8.16/x86_64/lib -lhdf5   -lz
 
 #end  -- dont change this line
