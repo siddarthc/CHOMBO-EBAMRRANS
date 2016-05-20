@@ -9,7 +9,7 @@ USE_EB=TRUE
 ## Define the variables needed by Make.example
 
 # the base name(s) of the application(s) in this directory
-ebase = transportDriver
+ebase = turbulenceDriver
 
 # the location of the Chombo "lib" directory
 CHOMBO_HOME = ../lib
