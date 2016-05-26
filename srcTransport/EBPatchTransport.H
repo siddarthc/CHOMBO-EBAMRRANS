@@ -88,7 +88,7 @@ public:
   ///
   /**
    */
-  void
+  virtual void
   normalPred(EBCellFAB&       a_primLo,
              EBCellFAB&       a_primHi,
              const EBCellFAB& a_primState,
@@ -336,7 +336,7 @@ public:
     return -1.0;
   }
   /// should not be called
-  void
+  virtual void
   getFlux(EBFluxFAB&       a_flux,
           const EBFluxFAB& a_prim);
   ///
@@ -383,8 +383,8 @@ public:
 
   Real artificialViscosityCoefficient() const;
 
-  void setMaxMin(const Real& a_maxVal,
-                 const Real& a_minVal)
+  virtual void setMaxMin(const Real& a_maxVal,
+                         const Real& a_minVal)
   {
     m_isMaxMinSet = true;
     m_maxVal = a_maxVal;
