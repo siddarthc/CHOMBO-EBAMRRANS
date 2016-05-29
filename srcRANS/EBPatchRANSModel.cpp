@@ -31,7 +31,6 @@ EBPatchRANSModel():EBPatchTransport()
 {
 //  setNumEquations(); it'd be nice if i can do this
 //                     but it's a recipe for disaster 
-//                     better way is to call this from factory
 }
 /***************/
 EBPatchRANSModel::

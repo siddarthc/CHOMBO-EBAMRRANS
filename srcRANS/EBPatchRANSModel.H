@@ -138,16 +138,29 @@ public:
      MayDay::Error("setMaxMin should not be called from EBPatchRANSModel");
   }
 
+    // The essence 
+  virtual void getTurbulentViscosity(EBFluxFAB&       a_nuT,
+                                     const EBCellFAB& a_state) = 0;
+
 protected:
 
   /// 
   /** 
-    Set number of equations in the Model (2 for k-epsilpon)
+    Set number of equations in the Model (2 for k-epsilpon, etc.)
   */
-  virtual void setNumEquations() const = 0;
+  virtual void setNumEquations() = 0;
 
   // number of equations
   int m_nEqn;
+
+  int m_nPrim;
+  int m_nCons;
+  int m_nFlux;
+  int m_nSlope;
+
+  Real m_maxNuT;  //NuT being the turbulent viscosity
+  Real m_minNuT;
+  bool m_limitNuT; 
 
 private:
 
