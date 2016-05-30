@@ -12,6 +12,7 @@
 #define _KEPSILON_H_
 
 #include "EBPatchRANSModel.H"
+#include "kEpsilonParams.H"
 #include "NamespaceHeader.H"
 
 #define TOL 1.e-12
@@ -28,6 +29,11 @@ public:
 
   ///
   kEpsilon();
+
+  void setParams(const kEpsilonParams& a_params)
+  {
+    m_params = a_params;
+  }
 
   ///
   ~kEpsilon();
@@ -90,7 +96,7 @@ protected:
   
   int m_kEqnIndex;  
   int m_epsEqnIndex;  
-
+/*
   Real m_maxK;
   Real m_maxEpsilon;
 
@@ -99,7 +105,8 @@ protected:
 
   bool m_limitK;
   bool m_limitEpsilon;
-
+*/
+  kEpsilonParams m_params;
 private:
 
   //disallowed for all the usual reasons

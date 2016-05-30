@@ -12,6 +12,7 @@
 #define _EBPATCHRANSMODEL_H_
 
 #include "EBPatchTransport.H"
+#include "EBAMRRANSParams.H"
 #include "NamespaceHeader.H"
 
 #define TOL 1.e-12
@@ -30,6 +31,11 @@ public:
 
   ///
   ~EBPatchRANSModel();
+
+  virtual void setParams(EBAMRRANSParams& a_params)
+  {
+    m_params = a_params;
+  }
 
   ///
   /**
@@ -149,6 +155,8 @@ protected:
     Set number of equations in the Model (2 for k-epsilpon, etc.)
   */
   virtual void setNumEquations() = 0;
+
+  EBAMRRANSParams m_params;
 
   // number of equations
   int m_nEqn;

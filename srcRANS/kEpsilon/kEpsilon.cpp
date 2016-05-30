@@ -42,24 +42,24 @@ void kEpsilon::floorPrimitives(EBCellFAB& a_primState,
                                const Box& a_box)
 {
  // feeling lazy; just using grandparents stuff
-  if (m_limitK)
+  if (m_params.m_limitK)
   {
     EBCellFAB tempFAB(m_ebisBox,a_box,1);
     Interval kInterv(m_kEqnIndex,m_kEqnIndex);
     Interval tempInterv(0,0);
     tempFAB.copy(a_box,tempInterv,a_box,a_primState,kInterv);
-    EBPatchTransport::setMaxMin(m_maxK,m_minK);
+    EBPatchTransport::setMaxMin(m_params.m_maxK,m_params.m_minK);
     EBPatchTransport::floorPrimitives(tempFAB,a_box);
     a_primState.copy(a_box,kInterv,a_box,tempFAB,tempInterv);
   }
 //  m_isMaxMinSet = false;
-  if (m_limitEpsilon)
+  if (m_params.m_limitEpsilon)
   {
     EBCellFAB tempFAB(m_ebisBox,a_box,1);
     Interval epsInterv(m_epsEqnIndex,m_epsEqnIndex);
     Interval tempInterv(0,0);
     tempFAB.copy(a_box,tempInterv,a_box,a_primState,epsInterv);
-    EBPatchTransport::setMaxMin(m_maxEpsilon,m_minEpsilon);
+    EBPatchTransport::setMaxMin(m_params.m_maxEpsilon,m_params.m_minEpsilon);
     EBPatchTransport::floorPrimitives(tempFAB,a_box);
     a_primState.copy(a_box,epsInterv,a_box,tempFAB,tempInterv);
   }  
@@ -68,25 +68,25 @@ void kEpsilon::floorPrimitives(EBCellFAB& a_primState,
 void kEpsilon::floorPrimitives(BaseIVFAB<Real>&  a_primState,
                                 const IntVectSet& a_ivsIrreg)
 {
-  if (m_limitK) 
+  if (m_params.m_limitK) 
   {
     for(VoFIterator vofit(a_ivsIrreg, m_ebisBox.getEBGraph());
           vofit.ok(); ++vofit)
         {
           const VolIndex& vof = vofit();
-          a_primState(vof,m_kEqnIndex) = Min(a_primState(vof,m_kEqnIndex), m_minK);
-          a_primState(vof,m_kEqnIndex) = Max(a_primState(vof,m_kEqnIndex), m_maxK);
+          a_primState(vof,m_kEqnIndex) = Min(a_primState(vof,m_kEqnIndex), m_params.m_minK);
+          a_primState(vof,m_kEqnIndex) = Max(a_primState(vof,m_kEqnIndex), m_params.m_maxK);
         }
   }
 //  m_isMaxMinSet = false;
-  if (m_limitEpsilon)
+  if (m_params.m_limitEpsilon)
   {
     for(VoFIterator vofit(a_ivsIrreg, m_ebisBox.getEBGraph());
           vofit.ok(); ++vofit)
         {
           const VolIndex& vof = vofit();
-          a_primState(vof,m_epsEqnIndex) = Min(a_primState(vof,m_epsEqnIndex), m_minEpsilon);
-          a_primState(vof,m_epsEqnIndex) = Max(a_primState(vof,m_epsEqnIndex), m_maxEpsilon); 
+          a_primState(vof,m_epsEqnIndex) = Min(a_primState(vof,m_epsEqnIndex), m_params.m_minEpsilon);
+          a_primState(vof,m_epsEqnIndex) = Max(a_primState(vof,m_epsEqnIndex), m_params.m_maxEpsilon); 
         }
   }
 }
@@ -95,24 +95,24 @@ void kEpsilon::floorConserved(EBCellFAB&  a_consState,
                               const Box&  a_box)
 {
  // feeling lazy; just using grandparents stuff
-  if (m_limitK)
+  if (m_params.m_limitK)
   {
     EBCellFAB tempFAB(m_ebisBox,a_box,1);
     Interval kInterv(m_kEqnIndex,m_kEqnIndex);
     Interval tempInterv(0,0);
     tempFAB.copy(a_box,tempInterv,a_box,a_consState,kInterv);
-    EBPatchTransport::setMaxMin(m_maxK,m_minK);
+    EBPatchTransport::setMaxMin(m_params.m_maxK,m_params.m_minK);
     EBPatchTransport::floorConserved(tempFAB,a_box);
     a_consState.copy(a_box,kInterv,a_box,tempFAB,tempInterv);
   }
 //  m_isMaxMinSet = false;
-  if (m_limitEpsilon)
+  if (m_params.m_limitEpsilon)
   {
     EBCellFAB tempFAB(m_ebisBox,a_box,1);
     Interval epsInterv(m_epsEqnIndex,m_epsEqnIndex);
     Interval tempInterv(0,0);
     tempFAB.copy(a_box,tempInterv,a_box,a_consState,epsInterv);
-    EBPatchTransport::setMaxMin(m_maxEpsilon,m_minEpsilon);
+    EBPatchTransport::setMaxMin(m_params.m_maxEpsilon,m_params.m_minEpsilon);
     EBPatchTransport::floorConserved(tempFAB,a_box);
     a_consState.copy(a_box,epsInterv,a_box,tempFAB,tempInterv);
   }
@@ -121,25 +121,25 @@ void kEpsilon::floorConserved(EBCellFAB&  a_consState,
 void kEpsilon::floorConserved(BaseIVFAB<Real>&   a_consState,
                               const IntVectSet&  a_ivsIrreg)
 {
-  if (m_limitK)
+  if (m_params.m_limitK)
   {
     for(VoFIterator vofit(a_ivsIrreg, m_ebisBox.getEBGraph());
           vofit.ok(); ++vofit)
         {
           const VolIndex& vof = vofit();
-          a_consState(vof,m_kEqnIndex) = Min(a_consState(vof,m_kEqnIndex), m_minK);
-          a_consState(vof,m_kEqnIndex) = Max(a_consState(vof,m_kEqnIndex), m_maxK);
+          a_consState(vof,m_kEqnIndex) = Min(a_consState(vof,m_kEqnIndex), m_params.m_minK);
+          a_consState(vof,m_kEqnIndex) = Max(a_consState(vof,m_kEqnIndex), m_params.m_maxK);
         }
   }
 //  m_isMaxMinSet = false;
-  if (m_limitEpsilon)
+  if (m_params.m_limitEpsilon)
   {
     for(VoFIterator vofit(a_ivsIrreg, m_ebisBox.getEBGraph());
           vofit.ok(); ++vofit)
         {
           const VolIndex& vof = vofit();
-          a_consState(vof,m_epsEqnIndex) = Min(a_consState(vof,m_epsEqnIndex), m_minEpsilon);
-          a_consState(vof,m_epsEqnIndex) = Max(a_consState(vof,m_epsEqnIndex), m_maxEpsilon);
+          a_consState(vof,m_epsEqnIndex) = Min(a_consState(vof,m_epsEqnIndex), m_params.m_minEpsilon);
+          a_consState(vof,m_epsEqnIndex) = Max(a_consState(vof,m_epsEqnIndex), m_params.m_maxEpsilon);
         }
   }
 }
