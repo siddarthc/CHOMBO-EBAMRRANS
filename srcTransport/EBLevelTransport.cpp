@@ -109,10 +109,10 @@ define(const DisjointBoxLayout&           a_thisDBL,
       m_coarEBISL = a_coarEBISL;
     }
 
-  m_nVar         =  1;
-  m_nPrim        =  1;
-  m_nCons        =  1;
-  m_nFlux        =  1;
+  m_nVar         =  m_ebPatchGodunov->numPrimitives();
+  m_nPrim        =  m_ebPatchGodunov->numPrimitives();
+  m_nCons        =  m_ebPatchGodunov->numConserved();
+  m_nFlux        =  m_ebPatchGodunov->numFluxes();
 
   m_irregSetsSmall.define(m_thisGrids);
   for(DataIterator dit = m_thisGrids.dataIterator();
@@ -195,7 +195,7 @@ define(const DisjointBoxLayout&           a_thisDBL,
   BaseIVFactory<Real> cellFactorySmall(m_thisEBISL, m_irregSetsSmall);
   m_nonConsDivergence.define(m_thisGrids, m_nCons,
                              IntVect::Zero, cellFactorySmall);
-  m_ebIrregFaceFlux.define(m_thisGrids, m_nCons,
+  m_ebIrregFaceFlux.define(m_thisGrids, m_nFlux,
                            IntVect::Zero, cellFactorySmall);
 
  //create temp data with the correct number of ghost cells
