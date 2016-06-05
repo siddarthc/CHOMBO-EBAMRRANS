@@ -24,6 +24,7 @@ public:
   EBAMRRANSParams() : EBAMRTransportParams()
   {
     m_variableCoeff = true;
+    m_doDiffusion = true;
   }
 };
 

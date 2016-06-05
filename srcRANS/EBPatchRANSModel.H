@@ -148,6 +148,22 @@ public:
   virtual void getTurbulentViscosity(EBFluxFAB&       a_nuT,
                                      const EBCellFAB& a_state) = 0;
 
+  /// compute net source (prduction - dissipation) for each equatin in the model
+  virtual void computeNetSource(EBCellFAB&       a_netSource,
+                                const EBCellFAB& a_state,
+                                const Box&       a_box) = 0;
+
+  /// the equation index depending on which stencil weights are reset (look EBAMRRANS::resetWeights)
+  virtual Real stencilWeightEqnIndex() = 0;
+
+  virtual void getDiffusionCoefficients(EBFluxFAB&       a_diffCoeff,
+                                        const EBFluxFAB& a_stateFace,
+                                        const Box&       a_box) = 0;
+
+  virtual void getDiffusionCoefficients(BaseIVFAB<Real>& a_diffCoeffIrreg,
+                                        const EBCellFAB& a_stateCell,
+                                        const IntVectSet& a_ivs) = 0;
+
 protected:
 
   /// 

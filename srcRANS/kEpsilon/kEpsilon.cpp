@@ -165,5 +165,36 @@ kEpsilon::primNames()
   
   return retVal;   
 }
+/***********/
+void kEpsilon::
+computeNetSource(EBCellFAB&       a_netSource,
+                 const EBCellFAB& a_state,
+                 const Box&       a_box)
+{
+
+}
+/**********/
+Real kEpsilon::
+stencilWeightEqnIndex()
+{
+  // reset stencil weights based on kEqn
+  return m_kEqnIndex;
+}
+/*********/
+void kEpsilon::
+getDiffusionCoefficients(EBFluxFAB&       a_diffCoeff,
+                         const EBFluxFAB& a_stateFace,
+                         const Box&       a_box)
+{
+
+}
+/**********/
+void kEpsilon::
+getDiffusionCoefficients(BaseIVFAB<Real>& a_diffCoeffIrreg,
+                         const EBCellFAB& a_stateCell,
+                         const IntVectSet& a_ivs)
+{
+
+}
 /**********/
 #include "NamespaceFooter.H"

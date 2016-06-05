@@ -49,6 +49,21 @@ public:
                       RefCountedPtr<EBPatchRANSModel>&   a_patchRANS,
                      const EBIndexSpace*                const a_eb = Chombo_EBIS::instance());  
 
+  /// compute production - dissipation for each equation in the model
+  virtual void computeNetSource(LevelData<EBCellFAB>&       a_netSource,
+                                const LevelData<EBCellFAB>& a_state,
+                                Real a_time, Real a_dt);
+
+  ///set the equation diffusion coefficients
+  virtual void getDiffusionCoefficients(LevelData<EBFluxFAB>&        a_diffCoeff, 
+                                        LevelData<BaseIVFAB<Real> >& a_diffCoeffIrreg,
+                                        const LevelData<EBCellFAB>&  a_stateCell, 
+                                        const LevelData<EBFluxFAB>&  a_stateFace,
+                                        Real a_time, Real a_dt);
+
+protected:
+
+  RefCountedPtr<EBPatchRANSModel> m_ebPatchModel;
 };
 
 #include "NamespaceFooter.H"

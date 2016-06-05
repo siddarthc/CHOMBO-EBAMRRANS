@@ -717,7 +717,7 @@ getDivDGradS(LevelData<EBCellFAB>& a_dtDivDGradS,
     }
 
   LevelData<EBCellFAB> rhs(m_eblgPtr->getDBL(), 1,  m_nGhost*IntVect::Unit, fact);
-   EBLevelDataOps::setToZero(rhs);
+  EBLevelDataOps::setToZero(rhs);
   Interval srcComp(0,0);
   Interval dstComp(0,0);
 
@@ -759,6 +759,12 @@ getDivDGradS(LevelData<EBCellFAB>& a_dtDivDGradS,
     {
       delete SCoarOldPtr;
       delete SCoarNewPtr;
+      delete coarFRPtr;
+    }
+
+  if(m_hasFiner)
+    {
+      delete fineFRPtr;
     }
 }
 /******************/

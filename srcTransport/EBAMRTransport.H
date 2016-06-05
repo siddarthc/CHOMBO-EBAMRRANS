@@ -300,6 +300,9 @@ protected:
 
   void fillCoefficients(const LevelData<EBCellFAB>& a_state);
 
+  void setDiffusionCoefficients(LevelData<EBCellFAB>& a_stateCell, 
+                                LevelData<EBFluxFAB>& a_stateFace);
+
   int getFinestLevel();
  
 private:
