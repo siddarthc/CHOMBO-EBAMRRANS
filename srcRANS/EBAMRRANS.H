@@ -14,6 +14,7 @@
 #include "EBAMRLevel.H"
 #include "EBAMRRANSParams.H"
 #include "EBPatchRANSModelFactory.H"
+#include "EBLevelRANS.H"
 
 #include "EBCellFAB.H"
 #include "EBLevelTGA.H"
@@ -83,7 +84,52 @@ public:
 
   virtual void postRegrid(int a_base_level);
 
+  virtual void initialGrid(const Vector<Box>& a_new_grids);
+
+  virtual void initialData();
+
+  virtual void postInitialize();
+
+  //! Sums the conserved variable identified by \a_ivar over the entire grid level, placing 
+  //! the result in \a a_sumcons.
+  //! \param a_sumcons The value of the conserved variable summed over the grid level.
+  //! \param a_ivar The index of the conserved variable within its FAB.
+  void sumConserved(Real& a_sumcons,
+                    const int& a_ivar) const;
+
+  virtual Real computeDt();
+
+  virtual Real computeInitialDt();
+
+  virtual void assignDBLPtr(const DisjointBoxLayout* a_dblPtr);
+
+  virtual void assignEBLGPtr(const EBLevelGrid* a_eblgPtr);
+
+  virtual void assignEBISLPtr(const EBISLayout* a_ebislPtr);
+
+  virtual void assignQuadCFIPtr(const RefCountedPtr<EBQuadCFInterp>* a_quadCFIPtr);
+
+  virtual void syncWithFineLevel();
+
+  virtual void assignAdvVelPtr(const LevelData<EBFluxFAB>* a_advVelPtr,
+                               const LayoutData< Vector< BaseIVFAB<Real> * > >* a_coveredAdvVelLoPtr,
+                               const LayoutData< Vector< BaseIVFAB<Real> * > >* a_coveredAdvVelHiPtr);
+
+  void postInitialGrid(const bool a_restart);
+
   void defineSolvers();
+
+  virtual LevelData<EBCellFAB>& getConsStateNew();
+
+  virtual Vector<string> getConsNames();
+
+  virtual int numConserved();
+
+  virtual void setNormalVelOld(const LevelData<EBCellFAB>& a_normalVel);
+
+  virtual void setNormalVelOld(const LevelData<EBFluxFAB>& a_advVel,
+                               const LayoutData< Vector< BaseIVFAB<Real> * > >& a_coveredAdvVelLo,
+                               const LayoutData< Vector< BaseIVFAB<Real> * > >& a_coveredAdvVelHi);  
 
   static bool s_solversDefined;
 
@@ -154,7 +200,7 @@ protected:
                                              LevelData<EBCellFAB>& a_UStar);
 
   void getDivDGradS(LevelData<EBCellFAB>& a_divDGradS,
-                    LevelData<EBCellFAB>& a_Ustar);
+                    LevelData<EBCellFAB>& a_UStar);
 
   //put ustar into state
   void finalAdvance(LevelData<EBCellFAB>& a_Ustar);
@@ -197,6 +243,9 @@ protected:
   
   void fillCoefficients(const LevelData<EBCellFAB>& a_state);
 
+  void setDiffusionCoefficients(LevelData<EBCellFAB>& a_stateCell,
+                                LevelData<EBFluxFAB>& a_stateFace);
+
   void setBCs();
 
   // no. of equations in the model
@@ -204,7 +253,7 @@ protected:
 
   bool m_externalDriver;
   EBAMRRANSParams m_params;
-  RefCountedPtr<EBPatchRANSModelFactory> m_ebPatchRANSModelFactory;
+  RefCountedPtr<EBPatchRANSModelFactory> m_ebPatchModelFactory;
 
   bool m_isDxSet;
   bool m_isDBLSet;
@@ -215,7 +264,6 @@ protected:
   int m_nGhost;
   int m_nComp;
   int m_nPrim;
-  int m_nEqn;
   Vector<string> m_stateNames;
   Vector<string> m_primNames;
   bool m_hasCoarser, m_hasFiner;
@@ -275,7 +323,7 @@ protected:
   static Vector<RefCountedPtr<EBLevelBackwardEuler> >  s_diffuseIntegratorBE;
   static Vector<RefCountedPtr<EBLevelTGA> >            s_diffuseIntegratorTGA;
 
-private():
+private:
 
   EBAMRRANS* getCoarserLevel() const;
   EBAMRRANS* getFinerLevel() const;

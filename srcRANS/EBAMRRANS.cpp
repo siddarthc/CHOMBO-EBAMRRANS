@@ -80,7 +80,7 @@ EBAMRRANS::
    }
 }
 /******************/
-EBAMRRANS::clearSolvers()
+void EBAMRRANS::clearSolvers()
 {
   for (int iEqn = 0; iEqn < m_nEqn; iEqn++)
   {
@@ -96,7 +96,7 @@ EBAMRRANS(const EBAMRRANSParams& a_params,
           const RefCountedPtr<EBPatchRANSModelFactory>& a_modelFactory,
           bool  a_externalDriver):
     m_params(a_params),
-    m_ebPatchRANSModelFactory(a_modelFactory),
+    m_ebPatchModelFactory(a_modelFactory),
     m_externalDriver(a_externalDriver)
 {
   m_isDxSet = false;
@@ -108,7 +108,7 @@ EBAMRRANS(const EBAMRRANSParams& a_params,
   m_oldNormalVelSet = false; 
 }
 /******************/
-EBAMRRANS::
+void EBAMRRANS::
 define(EBAMRLevel*          a_coarser_level_ptr,
        const ProblemDomain& a_problem_domain,
        int                  a_level,
@@ -210,12 +210,12 @@ Real EBAMRRANS::advance()
       ////end debug
 
       // add production-dissipation
-      pout() << "step 2(i): adding producion - dissipation to transport equation"
-      LevelData<EBCellFAB> netSource(m_eblg->getDBL(), m_nEqn, 4*IntVect::Unit, fact);
+      pout() << "step 2(i): adding producion - dissipation to transport equation" << endl;
+      LevelData<EBCellFAB> netSource(m_eblgPtr->getDBL(), m_nEqn, 4*IntVect::Unit, fact);
       addNetSource(netSource, UStar); 
     
       // now add the div(kappaGradS)
-      pout() << "step2: solve for diffusion term and add to transport equation"
+      pout() << "step2: solve for diffusion term and add to transport equation" << endl;
       LevelData<EBCellFAB> dtDivDGradS(m_eblgPtr->getDBL(),       1, 4*IntVect::Unit, fact);
       getDivDGradS(dtDivDGradS, UStar);
 
@@ -367,7 +367,7 @@ hyperbolicSource(LevelData<EBCellFAB>&       a_source)
           for(DataIterator dit = a_source.dataIterator(); dit.ok(); ++dit)
             {
               const Box& region = m_eblgPtr->getDBL().get(dit());
-              a_source[dit()].copy(region, interv, region, diffSrc[dit()], interv);
+              a_source[dit()].copy(region, interv, region, hypSrc[dit()], interv);
 
             }
           a_source.exchange();
@@ -510,7 +510,7 @@ kappaDiffusiveSource(LevelData<EBCellFAB>& a_kappaDiffSource,
 
      if (m_hasCoarser)
       {
-        delete eqnCoar
+        delete eqnCoar;
       }
 
      kappaSrc.copyTo(thisInt, a_kappaDiffSource, eqnInt);
@@ -560,7 +560,7 @@ coarseFineIncrement()
 }
 /*********/
 void EBAMRRANS::
-explicitAdance(const LevelData<EBCellFAB>& a_divergeF)
+explicitAdvance(const LevelData<EBCellFAB>& a_divergeF)
 {
   CH_assert(!m_params.m_doDiffusion);
   //advance everything explicitly
@@ -681,7 +681,7 @@ updateStateByNetSourceAndRedistribute(LevelData<EBCellFAB>& a_netSource,
       IntVectSet ivs = m_eblgPtr->getEBISL()[dit()].getIrregIVS(region);
       for(VoFIterator vofit(ivs, m_eblgPtr->getEBISL()[dit()].getEBGraph()); vofit.ok(); ++vofit)
         {
-          Real kappa   =  m_eblg.getEBISL()[dit()].volFrac(vofit());
+          Real kappa   =  m_eblgPtr->getEBISL()[dit()].volFrac(vofit());
           for (int iEqn = 0; iEqn < m_nEqn; iEqn++)
             {
               Real kapCons =  a_kappaConsNetSource[dit()](vofit(), iEqn);
@@ -694,7 +694,7 @@ updateStateByNetSourceAndRedistribute(LevelData<EBCellFAB>& a_netSource,
   Interval interv(0, m_nEqn-1);
   for (DataIterator dit = m_eblgPtr->getDBL().dataIterator(); dit.ok(); ++dit)
     {
-      EBCellFAB incr(m_eblgPtr->getEBISL()[dit()], m_eblg.getDBL().get(dit()), m_nEqn);
+      EBCellFAB incr(m_eblgPtr->getEBISL()[dit()], m_eblgPtr->getDBL().get(dit()), m_nEqn);
       incr.setVal(0.);
       //this makes incr = dissipation function = divsigma u
       incr += a_netSource[dit()];
@@ -713,7 +713,7 @@ updateStateByNetSourceAndRedistribute(LevelData<EBCellFAB>& a_netSource,
 
   for (int iEqn = 0; iEqn < m_nEqn; iEqn++)
     {
-      m_ebLevelRedist.resetWeights(a_Ustar, iEqn);
+      m_ebLevelRedist.resetWeights(a_UStar, iEqn);
       m_ebLevelRedist.redistribute(m_redisRHS, Interval(iEqn,iEqn));
     }
 
@@ -721,8 +721,8 @@ updateStateByNetSourceAndRedistribute(LevelData<EBCellFAB>& a_netSource,
 }
 /*********/
 void EBAMRRANS::
-getDivDGradS(LevelData<EBCellFAB>& a_divDGradS,
-                    LevelData<EBCellFAB>& a_Ustar)
+getDivDGradS(LevelData<EBCellFAB>& a_dtDivDGradS,
+                    LevelData<EBCellFAB>& a_UStar)
 {
   EBCellFactory fact(m_eblgPtr->getEBISL());
 
@@ -783,20 +783,20 @@ getDivDGradS(LevelData<EBCellFAB>& a_divDGradS,
      
      if (m_hasCoarser)
        {
-         UCoarOld->copyTo(eqnInt, *SCoarOld, thisInt);
-         UCoarNew->copyTo(eqInt, *SCoarNew, thisInt);
+         UCoarOldPtr->copyTo(eqnInt, *SCoarOld, thisInt);
+         UCoarNewPtr->copyTo(eqnInt, *SCoarNew, thisInt);
        }
     
-     m_redisRHS.copyTo(eqnInt, rhs, dstInt);
+     m_redisRHS.copyTo(eqnInt, rhs, thisInt);
      EBLevelDataOps::setToZero(m_redisRHS);
 
      if (m_params.m_backwardEuler)
       {
-        s_diffuseIntegratorBE[iEqn]->updateSoln(Snew, Sold, rhs, fineFRPtr, coarFRPtr, SCoarOldPtr, SCoarNewPtr, m_time, tCoarOld, tCoarNew, m_dt/2., m_level, true, iEqn);
+        s_diffuseIntegratorBE[iEqn]->updateSoln(Snew, Sold, rhs, fineFRPtr, coarFRPtr, SCoarOld, SCoarNew, m_time, tCoarOld, tCoarNew, m_dt/2., m_level, true, iEqn);
       }
      else
       {
-        s_diffuseIntegratorTGA[iEqn]->updateSoln(Snew, Sold, rhs, fineFRPtr, coarFRPtr, SCoarOldPtr, SCoarNewPtr, m_time, tCoarOld, tCoarNew, m_dt/2., m_level, true, iEqn);
+        s_diffuseIntegratorTGA[iEqn]->updateSoln(Snew, Sold, rhs, fineFRPtr, coarFRPtr, SCoarOld, SCoarNew, m_time, tCoarOld, tCoarNew, m_dt/2., m_level, true, iEqn);
       }
 
      EBLevelDataOps::scale(Sold, -1.0);
@@ -818,8 +818,8 @@ getDivDGradS(LevelData<EBCellFAB>& a_divDGradS,
 
      if (m_hasCoarser)
       {
-        delete SCoarOldPtr;
-        delete SCoarNewPtr;
+        delete SCoarOld;
+        delete SCoarNew;
       }
    } // end for iEqn  
   
@@ -837,11 +837,11 @@ getDivDGradS(LevelData<EBCellFAB>& a_divDGradS,
 }
 /**********/
 void EBAMRRANS::
-finalAdvance(LevelData<EBCellFAB>& a_Ustar)
+finalAdvance(LevelData<EBCellFAB>& a_UStar)
 {
   //set stateNew to udbst
   Interval comps(0, m_nComp-1);
-  a_Ustar.copyTo(comps, m_stateNew, comps);
+  a_UStar.copyTo(comps, m_stateNew, comps);
 
   m_ebLevelRANS.floorConserved(m_stateNew, m_time, m_dt);
 }
@@ -1018,7 +1018,7 @@ void EBAMRRANS::implicitReflux()
           //copy redistRHS to reflux divergence holders
           Interval srcComp, dstComp;
           srcComp = Interval(0, m_nComp-1);
-          dstComp = Interval(0, m_ncomp-1);
+          dstComp = Interval(0, m_nComp-1);
           RANSLevel->m_redisRHS.copyTo(srcComp, *dtRefluxDivergeS[ilev], dstComp);
 
           EBLevelDataOps::scale(*dtRefluxDivergeS[ilev], RANSLevel->m_dt);
@@ -1112,8 +1112,8 @@ getRefluxDeltaS(Vector<LevelData<EBCellFAB>* >& a_deltaScalar,
         thisDeltaS[ilev]        = new LevelData<EBCellFAB>(RANSLevel->m_eblgPtr->getDBL(), 1, 4*IntVect::Unit, fact);  
         thisDtRefluxDivergeS[ilev] = new LevelData<EBCellFAB>(RANSLevel->m_eblgPtr->getDBL(), 1, 4*IntVect::Unit, fact);
     
-        a_dtRefluxDivergeS[ilev]->copyTo(eqnInt, *thisDtRefluxDivergeS, thisInt);
-        a_deltaScalar[ilev]->copyTo(eqnInt, *thisDeltaS, thisInt); 
+        a_dtRefluxDivergeS[ilev]->copyTo(eqnInt, *thisDtRefluxDivergeS[ilev], thisInt);
+        a_deltaScalar[ilev]->copyTo(eqnInt, *thisDeltaS[ilev], thisInt); 
       }
 
      //solve equation (rho C_v I - dt Lv) delta = dt*Dr(Fm)
@@ -1448,7 +1448,7 @@ defineSolvers()
     }
 }
 /*********/
-void EBAMRRANS:::defineFactories(bool a_atHalfTime)
+void EBAMRRANS::defineFactories(bool a_atHalfTime)
 {
   if (m_params.m_doDiffusion)
     {
@@ -1464,7 +1464,7 @@ void EBAMRRANS:::defineFactories(bool a_atHalfTime)
 
       Vector<RefCountedPtr<EBQuadCFInterp> >                quadCFI(nlevels);
 
-      for (int i = iEqn; iEqn < m_nEqn; iEqn++)
+      for (int iEqn = 0; iEqn < m_nEqn; iEqn++)
       {
         aco[iEqn].resize(nlevels);
         bco[iEqn].resize(nlevels);
@@ -1497,7 +1497,7 @@ void EBAMRRANS:::defineFactories(bool a_atHalfTime)
           refRat      [ilev] = RANSLevel->m_ref_ratio;
           quadCFI     [ilev] = *RANSLevel->m_quadCFIPtr;
  
-          for (int iEqn = 0; iEqn < m_nSpec; iEqn++)
+          for (int iEqn = 0; iEqn < m_nEqn; iEqn++)
            {
              aco[iEqn][ilev] = RANSLevel->m_aco[iEqn];
              bco[iEqn][ilev] = RANSLevel->m_bco[iEqn];
@@ -1564,11 +1564,11 @@ fillCoefficients(const LevelData<EBCellFAB>& a_state)
                              coarPtr->m_eblgPtr->getDomain(), m_ref_ratio, m_nComp, nghost);
 
      EBCellFactory coarFact(coarPtr->m_eblgPtr->getEBISL());
-     LevelData<EBCellFAB> coarState(coarPtr->m_eblgPtr->getDBL(), m_ncons, nghost*IntVect::Unit, coarFact);
+     LevelData<EBCellFAB> coarState(coarPtr->m_eblgPtr->getDBL(), m_nComp, nghost*IntVect::Unit, coarFact);
 
      coarPtr->m_stateNew.copyTo(Interval(0,m_nComp-1), coarState, Interval(0,m_nComp-1));
 
-     patcher.interpolate(stateCell, coarState, coarState, m_time, m_time, m_time, Interval(0,m_nCons-1)); 
+     patcher.interpolate(stateCell, coarState, coarState, m_time, m_time, m_time, Interval(0,m_nComp-1)); 
    }
 
   for (int iEqn = 0; iEqn < m_nEqn; iEqn++)
@@ -1583,7 +1583,7 @@ void EBAMRRANS::setDiffusionCoefficients(LevelData<EBCellFAB>& a_stateCell,
                                          LevelData<EBFluxFAB>& a_stateFace)
 {
   EBFluxFactory fluxFact(m_eblgPtr->getEBISL());
-  BaseIVFAB<Real> bivFact(m_eblgPtr->getEBISL(), m_sets);
+  BaseIVFactory<Real> bivfFact(m_eblgPtr->getEBISL(), m_sets);
 
   LevelData<EBFluxFAB> diffCoeff(m_eblgPtr->getDBL(), m_nEqn, 4*IntVect::Unit, fluxFact);
   LevelData<BaseIVFAB<Real> > diffCoeffIrreg(m_eblgPtr->getDBL(), m_nComp, 4*IntVect::Unit, bivfFact);
@@ -1622,5 +1622,413 @@ setBCs()
    }
 }
 /*********/
+void EBAMRRANS::
+initialGrid(const Vector<Box>& a_new_grids)
+{
+  m_level_grids = a_new_grids;
+
+  if (m_externalDriver)
+    {
+      CH_assert(m_isEBLGSet == true);
+      CH_assert(m_eblgPtr != NULL);
+      levelSetup();
+    }
+  else
+    {
+      pout() << "EBAMRRANS::initialGrid not setup for self driving case" << endl;
+      MayDay::Error();
+    }
+}
+/*********/
+void EBAMRRANS::
+initialData()
+{
+  const EBPhysIBC* const ebphysIBCPtr = m_ebPatchModel->getEBPhysIBC();
+
+  ebphysIBCPtr->initialize(m_stateNew, m_eblgPtr->getEBISL());
+  ebphysIBCPtr->initialize(m_stateOld, m_eblgPtr->getEBISL());
+}
+/*********/
+void EBAMRRANS::postInitialize()
+{
+  // Average the finer grid levels to be consistent with this one.
+  if (m_hasFiner)
+    {
+      Interval interv(0, m_nComp-1);
+      EBAMRRANS* finePtr = getFinerLevel();
+      finePtr->m_ebCoarseAverage.average(m_stateNew,
+                                         finePtr->m_stateNew,
+                                         interv);
+    }
+
+/*
+  // only if the equation being solved conserves something
+  // Here we record the totals for the conserved quantities on grid level 0.
+  if(!m_hasCoarser)
+    {
+      // Sum the quantities.
+      int varIndex = m_ebPatchModel->stencilWeightIndex();
+      sumConserved(m_originalMass, varIndex);
+    }
+*/
+//    if(m_level==0) defineSolvers(); 
+
+}
+/*********/
+void EBAMRRANS::
+sumConserved(Real& a_sumcons,
+             const int& a_ivar) const
+{
+  Real sumgrid = 0;
+  for(DataIterator dit= m_eblgPtr->getDBL().dataIterator(); dit.ok(); ++dit)
+    {
+      const EBCellFAB& state = m_stateNew[dit()];
+      Box thisBox = m_eblgPtr->getDBL().get(dit());
+      IntVectSet uberIVS(thisBox);
+      const EBISBox& ebisBox = m_eblgPtr->getEBISL()[dit()];
+      for(VoFIterator vofit(uberIVS, ebisBox.getEBGraph());
+          vofit.ok(); ++vofit)
+        {
+          const VolIndex& vof = vofit();
+          Real consVal = state(vof, a_ivar);
+          Real volFrac = ebisBox.volFrac(vof);
+          Real volume = volFrac;
+          sumgrid += consVal*volume;
+        }
+    }
+
+  Vector<Real> all_sum;
+  gather(all_sum,sumgrid,uniqueProc(SerialTask::compute));
+  Real sumallgrid = 0.;
+  if (procID() == uniqueProc(SerialTask::compute))
+    {
+      for (int i = 0; i < all_sum.size(); ++i)
+        {
+          sumallgrid += all_sum[i];
+        }
+    }
+  broadcast(sumallgrid,uniqueProc(SerialTask::compute));
+  a_sumcons = sumallgrid;  
+}
+/*********/
+Real EBAMRRANS::computeDt()
+{
+  // dt is provided by external driver
+  m_dt = *m_dtPtr;
+  return m_dt;
+}
+/*********/
+Real EBAMRRANS::computeInitialDt()
+{
+  // dt is provided by external driver
+  m_dt = *m_dtPtr;
+  return m_dt;
+}
+/*********/
+void EBAMRRANS::
+assignDBLPtr(const DisjointBoxLayout* a_dblPtr)
+{
+//  m_isDBLSet = true;
+//  m_dblPtr = a_dblPtr;
+}
+/*********/
+void EBAMRRANS::
+assignEBLGPtr(const EBLevelGrid* a_eblgPtr)
+{
+  m_isEBLGSet = true;
+  m_eblgPtr = a_eblgPtr;
+}
+/*********/
+void EBAMRRANS::
+assignEBISLPtr(const EBISLayout* a_ebislPtr)
+{
+//  m_isEBISLSet = true;
+//  m_ebislPtr = a_ebislPtr;
+}
+/*********/
+void EBAMRRANS::
+assignQuadCFIPtr(const RefCountedPtr<EBQuadCFInterp>* a_quadCFIPtr)
+{
+  m_isQuadCFISet = true;
+  m_quadCFIPtr = a_quadCFIPtr;
+}
+/*********/
+void EBAMRRANS::
+syncWithFineLevel()
+{
+  //stuff that needs to be setup from the finer
+  //level.  A bunch of objects depend upon the layouts
+  //from both levels and the finer level changes more
+  //often from regrid so this needs to be called from the finer
+  //level
+  CH_assert(m_hasFiner);
+  if(m_hasFiner)
+    {
+      EBAMRRANS* finePtr = getFinerLevel();
+      int nRefFine = refRatio();
+      const EBLevelGrid* finer_eblgPtr = finePtr->m_eblgPtr;
+      const DisjointBoxLayout& finer_dbl = finer_eblgPtr->getDBL();
+      const EBISLayout& finer_ebisl      = finer_eblgPtr->getEBISL();
+      // maintain flux registers
+/*
+      m_divFFluxRegister.define(finer_dbl,
+                                m_eblgPtr->getDBL(),
+                                finer_ebisl,
+                                m_eblgPtr->getEBISL(),
+                                m_eblgPtr->getDomain().domainBox(),
+                                nRefFine,
+                                m_nComp, Chombo_EBIS::instance(), s_noEBCF);
+
+      m_scalarFluxRegister.define(finer_dbl,
+                                  m_eblgPtr->getDBL(),
+                                  finer_ebisl,
+                                  m_eblgPtr->getEBISL(),
+                                  m_eblgPtr->getDomain().domainBox(),
+                                  nRefFine,
+                                  m_nComp, Chombo_EBIS::instance(), s_noEBCF);
+*/
+
+// Sid added due to parallel issues: 10/12
+  m_divFFluxRegister.define(*finer_eblgPtr, *m_eblgPtr,
+                            nRefFine, m_nComp, s_noEBCF);
+
+  m_scalarFluxRegister.define(*finer_eblgPtr, *m_eblgPtr,
+                            nRefFine, m_nComp, s_noEBCF);
+
+      //define fine to coarse redistribution object
+      //for now set to volume weighting
+      if (!s_noEBCF)
+        {
+          m_ebCoarToFineRedist.define(*finer_eblgPtr, *m_eblgPtr, nRefFine , m_nComp, 1);
+          //define coarse to coarse redistribution object
+          m_ebCoarToCoarRedist.define(*finer_eblgPtr, *m_eblgPtr, nRefFine , m_nComp, 1);
+        }
+
+      //set all the registers to zero
+      if(!s_noEBCF)
+        {
+          m_ebCoarToFineRedist.setToZero();
+          m_ebCoarToCoarRedist.setToZero();
+        }
+      m_divFFluxRegister.setToZero();
+      m_scalarFluxRegister.setToZero();
+    }
+}
+/*********/
+void EBAMRRANS::assignAdvVelPtr(const LevelData<EBFluxFAB>* a_advVelPtr,
+                                     const LayoutData< Vector< BaseIVFAB<Real> * > >* a_coveredAdvVelLoPtr,
+                                     const LayoutData< Vector< BaseIVFAB<Real> * > >* a_coveredAdvVelHiPtr)
+{
+  m_advVelPtr          = a_advVelPtr;
+  m_coveredAdvVelLoPtr = a_coveredAdvVelLoPtr;
+  m_coveredAdvVelHiPtr = a_coveredAdvVelHiPtr;
+}
+/*********/
+void EBAMRRANS::postInitialGrid(const bool a_restart)
+{
+  if(m_level == 0) defineSolvers();
+}
+/********/
+LevelData<EBCellFAB>& EBAMRRANS::getConsStateNew()
+{
+  return m_stateNew;
+}
+/*********/
+Vector<string> EBAMRRANS::getConsNames()
+{
+  return m_stateNames;
+}
+/*********/
+int EBAMRRANS::numConserved()
+{
+  return m_ebPatchModel->numConserved();
+}
+/*********/
+void EBAMRRANS::
+setNormalVelOld(const LevelData<EBCellFAB>& a_normalVel)
+{
+  a_normalVel.copyTo(m_normalVelOld);
+}
+/*********/
+void EBAMRRANS::
+setNormalVelOld(const LevelData<EBFluxFAB>& a_advVel,
+                const LayoutData< Vector< BaseIVFAB<Real> * > >& a_coveredAdvVelLo,
+                const LayoutData< Vector< BaseIVFAB<Real> * > >& a_coveredAdvVelHi)
+{
+  m_oldNormalVelSet = true;
+  m_ebLevelRANS.computeNormalVel(m_normalVelOld, a_advVel, a_coveredAdvVelLo, a_coveredAdvVelHi);
+}
+/******************/
+/******************/
+#ifdef CH_USE_HDF5
+/******************/
+/******************/
+void EBAMRRANS::writePlotHeaderOld    (HDF5Handle& a_handle) const
+{
+}
+/******************/
+/******************/
+void EBAMRRANS::writePlotLevelOld     (HDF5Handle& a_handle) const
+{
+}
+/******************/
+/******************/
+void EBAMRRANS::writePlotHeader       (HDF5Handle& a_handle) const
+{
+}
+/******************/
+/******************/
+void EBAMRRANS::writePlotLevel        (HDF5Handle& a_handle) const
+{
+}
+/******************/
+/******************/
+void EBAMRRANS::writeCheckpointHeader (HDF5Handle& a_handle) const
+{
+  //stuff in checkpoint header is already
+  //set in the define function, such as
+  // Setup the number of components
+  // Setup the component names
+  //so i will eliminate the middleman 
+}
+/******************/
+/******************/
+void EBAMRRANS::writeCheckpointLevel  (HDF5Handle& a_handle) const
+{
+
+  // Setup the level string
+  char levelStr[20];
+  sprintf(levelStr,"%d",m_level);
+  const std::string label = std::string("level_") + levelStr;
+
+  a_handle.setGroup(label);
+
+  // write data for this level
+  write(a_handle, m_stateOld, "dataOld");
+  write(a_handle, m_stateNew, "dataNew");
+}
+/******************/
+/******************/
+void EBAMRRANS::readCheckpointHeader  (HDF5Handle& a_handle)
+{
+  if (m_params.m_verbosity >= 3)
+    {
+      pout() << "EBAMRRANS::readCheckpointHeader" << endl;
+    }
+
+  //stuff in non-eb checkpoint header is already
+  //set in the define function, such as
+  // Setup the number of components
+  // Setup the component names
+  // So i will eliminate the middleman. 
+}
+/******************/
+/******************/
+void EBAMRRANS::readCheckpointLevel   (HDF5Handle& a_handle)
+{
+  CH_assert(m_isDefined);
+  // only the case driven by external driver for now
+  CH_assert(m_externalDriver);
+  CH_assert(m_isEBLGSet);
+  CH_assert(m_eblgPtr != NULL);
+
+  if (m_params.m_verbosity >= 3)
+    {
+      pout() << "EBAMRRANS::readCheckpointLevel" << endl;
+    }
+
+  // Setup the level string
+  char levelStr[20];
+  sprintf(levelStr,"%d",m_level);
+  const std::string label = std::string("level_") + levelStr;
+
+  // Read the header for this level
+  a_handle.setGroup(label);
+
+  HDF5HeaderData header;
+  header.readFromFile(a_handle);
+
+// refRat is alread set in define
+/*
+  // Get the refinement ratio
+  if (header.m_int.find("ref_ratio") == header.m_int.end())
+    {
+      MayDay::Error("::readCheckpointLevel: file does not contain ref_ratio");
+    }
+  m_ref_ratio = header.m_int["ref_ratio"];
+*/
+
+  //reasons for deviations from non-eb stuff
+  // the tag buffer size is set by the factory.
+  // dx is set in the define function
+  // the problem domain is set in the define function
+
+/*
+  // Get dt
+  if (header.m_real.find("dt") == header.m_real.end())
+    {
+      MayDay::Error("readCheckpointLevel: file does not contain dt");
+    }
+  m_dt = header.m_real["dt"];
+*/
+
+// already checked in the driver class
+/*
+  // Get the grids
+  Vector<Box> vboxGrids;
+  const int gridStatus = read(a_handle, vboxGrids);
+  if (gridStatus != 0)
+    {
+      MayDay::Error("readCheckpointLevel: file has no grids");
+    }
+*/
+
+  //this keeps the order of the AMRLevel m_level_grids
+  //consistent with m_eblg.getDBL()
+  LayoutIterator lit = m_eblgPtr->getDBL().layoutIterator();
+  for (lit.begin(); lit.ok(); ++lit)
+    {
+      Box b = m_eblgPtr->getDBL().get(lit());
+      m_level_grids.push_back(b);
+    }
+
+// this is in levelSetup
+/*
+  EBCellFactory factoryNew(m_eblgPtr->getEBISL());
+  //m_nghost is set in define function
+  IntVect ivGhost = m_nGhost*IntVect::Unit;
+  m_stateNew.define(m_eblgPtr->getDBL(),m_nComp, ivGhost, factoryNew);
+  m_stateOld.define(m_eblgPtr->getDBL(),m_nComp, ivGhost, factoryNew);
+  m_normalVelNew.define(m_eblgPtr->getDBL(),SpaceDim, ivGhost, factoryNew);
+  m_normalVelOld.define(m_eblgPtr->getDBL(),SpaceDim, ivGhost, factoryNew);
+  m_redisRHS.define(m_eblgPtr->getDBL(),m_nComp, ivGhost, factoryNew);
+  EBLevelDataOps::setVal(m_redisRHS, 0.0);
+*/
+  // Set up data structures
+  levelSetup();
+//  Interval vars(0, m_nComp-1);
+  //the false says to not redefine the data
+  int dataStatusNew = read<EBCellFAB>(a_handle,
+                                      m_stateNew,
+                                      "dataNew",
+                                      m_eblgPtr->getDBL(),
+                                      Interval(),
+                                      false);
+
+  int dataStatusOld = read<EBCellFAB>(a_handle,
+                                      m_stateOld,
+                                      "dataOld",
+                                      m_eblgPtr->getDBL(),
+                                      Interval(),
+                                      false);
+
+  if ((dataStatusNew != 0) || (dataStatusOld != 0))
+    {
+      MayDay::Error("file does not contain state data");
+    }
+
+}
+/******************/
+/******************/
 #endif
 #include "NamespaceFooter.H"
