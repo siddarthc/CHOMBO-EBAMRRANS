@@ -4,17 +4,18 @@ max_time              = 450.0
 #restart_file = check3930.nx256.2d.hdf5
 do_steady_state = 0
 
-mg_relax_type  = 2
-mg_relax_lazy  = true
-mg_num_smooths = 4
+solver_mg_relax_type  = 2
+# 0 for false, 1 for true
+solver_mg_relax_lazy  = 1 
+solver_mg_num_smooths = 4
 #bottom solver:  0=BiCGStab, 1=EBSimpleSmoother
-mg_bottom_solver = 1
-mg_num_precond = 4
-mg_num_cycles = 1
-mg_hang        = 1.0e-2
-mg_tolerance   = 1.0e-15
-mg_norm_thresh = 1.0e-15
-mg_iter_max    = 1000
+solver_mg_bottom_solver = 1
+solver_mg_num_precond = 4
+solver_mg_num_cycles = 1
+solver_mg_hang        = 1.0e-2
+solver_mg_tolerance   = 1.0e-15
+solver_mg_norm_thresh = 1.0e-15
+solver_mg_iter_max    = 1000
 
 tag_on_scalar         = 0
 

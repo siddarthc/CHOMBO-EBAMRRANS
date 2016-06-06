@@ -1,20 +1,21 @@
 max_step  	      = 100000
 max_time              = 450.0
 
-#restart_file = check1980.nx256.2d.hdf5
+#restart_file = check3930.nx256.2d.hdf5
 do_steady_state = 0
 
-mg_relax_type  = 2
-mg_relax_lazy  = true
-mg_num_smooths = 4
+solver_mg_relax_type  = 2
+# 0 for false, 1 for true
+solver_mg_relax_lazy  = 1 
+solver_mg_num_smooths = 4
 #bottom solver:  0=BiCGStab, 1=EBSimpleSmoother
-mg_bottom_solver = 1
-mg_num_precond = 4
-mg_num_cycles = 1
-mg_hang        = 1.0e-2
-mg_tolerance   = 1.0e-15
-mg_norm_thresh = 1.0e-15
-mg_iter_max    = 1000
+solver_mg_bottom_solver = 1
+solver_mg_num_precond = 4
+solver_mg_num_cycles = 1
+solver_mg_hang        = 1.0e-2
+solver_mg_tolerance   = 1.0e-15
+solver_mg_norm_thresh = 1.0e-15
+solver_mg_iter_max    = 1000
 
 tag_on_scalar         = 0
 
@@ -34,18 +35,18 @@ order_ebbc            = 2
 order_time            = 2
 
 use_limiting          = 1
-domain_length         = 20.0
+domain_length         = 10.0
 #domain_periodicity    = 0 1 1 
 do_regrid_smoothing = true
 
-max_level	      = 2
+max_level	      = 3
 n_cell                = 64 32 32
 ref_ratio	      = 2 2 2 2 2 2 2 2 2
 num_filter_iterations  = 2
 num_gphi_iterations    = 2
 num_init_iterations    = 2
 
-checkpoint_interval   = 30
+checkpoint_interval   = 20
 plot_interval	      = 10
 max_grid_size	      = 16
 fill_ratio	      = 0.7
@@ -58,23 +59,23 @@ cfl		      = 0.9
 init_cfl	      = 0.5
 verbosity	      = 1
 nesting_radius	      = 2
-tag_buffer	      = 16
+tag_buffer	      = 8
 
 flow_dir	      = 0
-jet1_inflow_vel       = 42.86
+jet1_inflow_vel       = 5.0
 do_jet2               = 1
 jet2_inflow_vel       = -45.0
 
 jet1_poiseuille_inflow = false
 jet1_poise_profile_radius = 5.0
-jet1_poise_profile_center_pt = 0.0 5.0 5.0
+jet1_poise_profile_center_pt = 0.0 2.5 2.5
 
 jet2_poiseuille_inflow = true
 jet2_poise_profile_radius = 0.05
-jet2_poise_profile_center_pt = 20.0 5.0 5.0
+jet2_poise_profile_center_pt = 10.0 2.5 2.5
 
-jet2_tube_origin = 20.0 5.0 5.0
-jet2_tube_end = 15.5 5.0 5.0
+jet2_tube_origin = 10.0 2.5 2.5
+jet2_tube_end = 8.5 2.5 2.5
 
 poiseuille_init = true
 poise_profile_axis = 1.0 0.0 0.0
@@ -120,7 +121,7 @@ schmidt_number = 1900
 #cutplane_normal = 1.0 0.0 0.0
 
 which_geom = 27
-jet_center = 4.5 5.0 5.0
-jet_distance = 15.5 5.0 5.0
+jet_center = 1.5 2.5 2.5
+jet_distance = 8.5 2.5 2.5
 jet_radius = 0.05
 wall_thickness = 0.025
