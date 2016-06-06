@@ -471,26 +471,45 @@ getAMRINSParameters(AMRParameters&   a_params,
       hi[ivec] = n_cell[ivec] - 1;
     }
 
-  if (ppebamr.contains("solver_tolerance"))
+  if (ppebamr.contains("solver_mg_tolerance"))
     {
-      ppebamr.get("solver_tolerance", a_params.m_tolerance);
+      ppebamr.get("solver_mg_tolerance", a_params.m_tolerance);
     }
-  if (ppebamr.contains("solver_mgcycle"))
+  if (ppebamr.contains("solver_mg_mgcycle"))
     {
-      ppebamr.get("solver_mgcycle", a_params.m_mgCycle);
+      ppebamr.get("solvermg__mgcycle", a_params.m_mgCycle);
     }
-  if (ppebamr.contains("solver_iter_max"))
+  if (ppebamr.contains("solver_mg_iter_max"))
     {
-      ppebamr.get("solver_iter_max", a_params.m_iterMax);
+      ppebamr.get("solver_mg_iter_max", a_params.m_iterMax);
     }
-  if (ppebamr.contains("solver_hang"))
+  if (ppebamr.contains("solver_mg_hang"))
     {
-      ppebamr.get("solver_hang", a_params.m_hang);
+      ppebamr.get("solver_mg_hang", a_params.m_hang);
     }
-  if (ppebamr.contains("solver_num_smooth"))
+  if (ppebamr.contains("solver_mg_num_smooth"))
     {
-      ppebamr.get("solver_num_smooth", a_params.m_numSmooth);
+      ppebamr.get("solver_mg_num_smooth", a_params.m_numSmooth);
     }
+
+  if (ppebamr.contains("solver_mg_num_cycles"))
+    {
+      ppebamr.get("solver_mg_num_cycles", a_params.m_numMG);
+    }
+
+  if (ppebamr.contains("solver_bottom_cushion"))
+    {
+      ppebamr.get("solver_bottom_cushion", a_params.m_bottom_cushion);
+    }
+
+  int doLazy;
+
+  if (ppebamr.contains("solver_mg_lazy_relax"))
+    {
+      ppebamr.get("solver_mg_lazy_relax", doLazy);
+    }
+
+  (doLazy == 1) ? a_params.m_doLazyRelax = true : a_params.m_doLazyRelax = false;
 
   if (ppebamr.contains("domain_periodicity"))
     {

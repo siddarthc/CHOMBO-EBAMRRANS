@@ -37,6 +37,9 @@
 #include "InflowOutflowIBC.H"
 #include "EBAMRTransport.H"
 #include "EBNormalizeByVolumeFraction.H"
+
+#include "EBViscousTensorOpFactory.H"
+
 #include <iomanip>
 #include <cmath>
 #include <cstdio>
@@ -47,12 +50,24 @@
 extern Real g_simulationTime;
 #define debugIV IntVect(D_DECL(16, 3, 0))
 
+RefCountedPtr<AMRLevelOpFactory<LevelData<EBCellFAB> > > EBAMRNoSubcycle::s_veloFactory = RefCountedPtr<AMRLevelOpFactory<LevelData<EBCellFAB> > >();
+
+RefCountedPtr<MomentumTGA> EBAMRNoSubcycle::s_veloIntegratorTGA = RefCountedPtr<MomentumTGA>();
+
+RefCountedPtr<MomentumBackwardEuler> EBAMRNoSubcycle::s_veloIntegratorBE = RefCountedPtr<MomentumBackwardEuler>();
+
+RefCountedPtr<AMRMultiGrid<     LevelData<EBCellFAB> > > EBAMRNoSubcycle::s_veloSolver =  RefCountedPtr<AMRMultiGrid<     LevelData<EBCellFAB> > >();
+
+//BiCGStabSolver<LevelData<EBCellFAB> >                    EBAMRNoSubcycle::s_botSolver          = BiCGStabSolver<LevelData<EBCellFAB> >();
+EBSimpleSolver                 EBAMRNoSubcycle::s_botSolver;
+
 /**********************/
 EBAMRNoSubcycle::
 EBAMRNoSubcycle(const AMRParameters&      a_params,
                 const EBIBCFactory&       a_ibcfact,
                 const ProblemDomain&      a_coarsestDomain,
                 Real                      a_viscosity,
+                bool                      a_extraSolverDepViscosity,
                 const EBIndexSpace* const a_ebisPtr):
   m_ebisPtr(a_ebisPtr)
 {
@@ -65,7 +80,8 @@ EBAMRNoSubcycle(const AMRParameters&      a_params,
   //set parameters of the run
   m_params    = a_params;
   m_viscosity = a_viscosity;
-  m_viscousCalc = (m_viscosity > 0);
+  m_extraSolverDepViscosity = a_extraSolverDepViscosity;
+  m_viscousCalc = (m_viscosity > 0 || m_extraSolverDepViscosity);
 
   //create initial and boundary condition object
   m_ibc    =   a_ibcfact.create();
@@ -241,6 +257,16 @@ EBAMRNoSubcycle::
     {
       delete m_macProjector;
     }
+
+  clearSolvers();
+}
+/**********/
+void EBAMRNoSubcycle::
+clearSolvers()
+{
+  s_veloFactory  =  RefCountedPtr<AMRLevelOpFactory<LevelData<EBCellFAB> > >();
+  s_veloIntegratorBE  =  RefCountedPtr<MomentumBackwardEuler>();
+  s_veloIntegratorTGA  =  RefCountedPtr<MomentumTGA>();
 }
 /**********/
 void
@@ -4285,4 +4311,85 @@ setCoveredStuffToZero(LevelData<EBCellFAB>& a_vort)
           vortFAB.setCoveredCellVal(covVal, icomp);
         }
     }
+}
+/***************/
+void EBAMRNoSubcycle::
+defineSolvers()
+{
+  CH_TIME("EBAMRNoSubcycle::defineSolvers");
+  ParmParse pp;
+
+  //irregular cells are hardwired to be tagged (change in tagCellsLevel)
+  bool noEBCF = true;
+  EBViscousTensorOp::setForceNoEBCF(noEBCF);
+  defineFactories(true);
+  int coarsestLevel = 0;
+  if (m_viscousCalc)
+   {
+     ProblemDomain lev0Dom = m_eblg[0].getDomain();
+     int nlevels = m_finestLevel + 1;
+
+     s_veloSolver = RefCountedPtr<AMRMultiGrid< LevelData<EBCellFAB> > >( new AMRMultiGrid< LevelData<EBCellFAB> > ());
+
+     s_veloSolver->define(lev0Dom, *s_veloFactory, &s_botSolver, nlevels);
+     s_veloSolver->setSolverParameters(m_params.m_numSmooth, m_params.m_numSmooth, m_params.m_numSmooth, m_params.m_numMG, m_params.m_iterMax, m_params.m_tolerance, m_params.m_hang, m_params.m_normThresh);
+     s_veloSolver->m_verbosity = m_params.m_verbosity;
+
+     s_veloSolver->m_bottomSolverEpsCushion = m_params.m_bottom_cushion;
+
+     s_veloIntegratorBE  = RefCountedPtr<MomentumBackwardEuler>(new  MomentumBackwardEuler(m_grids, m_params.m_refRatio, lev0Dom, s_veloFactory, s_veloSolver));
+      s_veloIntegratorBE->setEBLG(m_eblg);
+
+      s_veloIntegratorTGA  = RefCountedPtr<MomentumTGA>(new  MomentumTGA(m_grids, m_params.m_refRatio, lev0Dom, s_veloFactory, s_veloSolver));
+      s_veloIntegratorTGA->setEBLG(m_eblg);
+   }  
+}
+/*********/
+void EBAMRNoSubcycle::defineFactories(bool a_atHalfTime)
+{
+  CH_TIME("EBAMRNosubcycle::defineFactories");
+  if (m_viscousCalc)
+    {
+      int nlevels = m_finestLevel+1;
+      Vector<RefCountedPtr<LevelData<EBFluxFAB> >        >  eta(nlevels);
+      Vector<RefCountedPtr<LevelData<EBCellFAB> >        >  acoVelo(nlevels);
+      Vector<RefCountedPtr<LevelData<EBFluxFAB> >        >  lambda(nlevels);
+      Vector<RefCountedPtr<LevelData<BaseIVFAB<Real> > > >  etaIrreg(nlevels);
+      Vector<RefCountedPtr<LevelData<BaseIVFAB<Real> > > >  lambdaIrreg(nlevels);
+
+      // the diffusion coefficients either constant viscosity or come from extra solver that this drives
+
+      fillCoefficients();
+
+      //alpha, beta get replaced in tga solves
+      Real alpha = 1;
+      Real beta  = 1;
+      IntVect  giv    = 4*IntVect::Unit;
+
+      RefCountedPtr<BaseDomainBCFactory> celBCVel = m_ibc->getVelBC(0); // 0 to just fill the arg. Doesn't really matter 
+      RefCountedPtr<BaseEBBCFactory> ebbcVelo = m_ibc->getVelocityEBBC(0); // 0 to just fill he arg
+
+      // Viscous tensor operator.
+      bool noMG = true;
+      s_veloFactory =
+        RefCountedPtr<AMRLevelOpFactory<LevelData<EBCellFAB> > >
+        (dynamic_cast<AMRLevelOpFactory<LevelData<EBCellFAB> >*>
+         (new EBViscousTensorOpFactory(m_eblg, alpha, beta, m_acoVelo, m_eta,
+                                       m_lambda, m_etaIrreg, m_lambdaIrreg,m_dx[0], m_params.m_refRatio,
+                                       celBCVel, ebbcVelo, giv, giv, -1, noMG)));
+
+      EBViscousTensorOp::doLazyRelax(m_params.m_doLazyRelax);
+
+    }  
+
+  for (int ilev = 0; ilev < m_finestLevel+1; ilev++)
+   {
+     m_eta[ilev]->exchange(Interval(0,0));
+     m_lambda[ilev]->exchange(Interval(0,0));
+   } 
+}
+/*********/
+void EBAMRNoSubcycle::fillCoefficients()
+{
+
 }

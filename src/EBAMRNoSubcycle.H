@@ -26,6 +26,7 @@
 #include "EBFastFR.H"
 #include "EBAMRLevelFactory.H"
 
+#include "MomentumTGA.H"
 #include "NamespaceHeader.H"
 
 ///
@@ -65,6 +66,7 @@ public:
     m_normThresh          = 1.0e-15;
     m_iterMax             = 100;
     m_mgCycle             = 1;
+    m_numMG               = 1;
     m_numSmooth           = 4;
     m_numBotSmooth        = 64;
     m_doRegridSmoothing   = false;
@@ -77,6 +79,8 @@ public:
     m_initPoiseData       = false;
     m_doSteadyState       = false;
     m_orderTimeIntegration = 2;
+    m_bottom_cushion       = 1.0;
+    m_doLazyRelax          = true;
   }
 
   ///
@@ -167,6 +171,11 @@ public:
   bool m_initPoiseData;
   bool m_doSteadyState;
   int  m_orderTimeIntegration;
+
+  int m_numMG;
+  Real m_bottom_cushion;
+
+  bool m_doLazyRelax;
 };
 
 
@@ -196,6 +205,7 @@ public:
                   const EBIBCFactory&       a_IBC,
                   const ProblemDomain&      a_coarsestDomain,
                   Real                      a_viscosity,
+                  bool                      a_extraSolverDepViscosity = false,
                   const EBIndexSpace* const a_ebisPtr = Chombo_EBIS::instance());
 
   ///
@@ -590,7 +600,10 @@ protected:
 
   EBCompositeCCProjector*        m_ccProjector;
   EBCompositeMACProjector*       m_macProjector;
+
+// this is changed to 
   RefCountedPtr<AMRMultiGrid<LevelData<EBCellFAB> > >  m_solver[SpaceDim];
+
   BiCGStabSolver<LevelData<EBCellFAB> >          m_bottomSolver;
   EBSimpleSolver                                 m_bottomSolverSimp;
   RefCountedPtr<AMRTGA<LevelData<EBCellFAB> > >  m_tgaSolver[SpaceDim];
@@ -671,6 +684,42 @@ protected:
 
   bool m_extraSolverDefined; 
 
+  // if this is true, the viscosity comes from the extra solver driven by this
+  // if false, viscosity is set to constant laminar viscosity
+  bool m_extraSolverDepViscosity;
+
+  // Sid(06/06/16): new additions to make viscosity = f(x,y,z,t)
+  // the interface for EBViscousTensorOp
+  // also static to make these easily extendable to the subcycling world
+  //    goal is to gradually replace the old school solvers with these
+  static RefCountedPtr<AMRLevelOpFactory<LevelData<EBCellFAB> > > s_veloFactory;
+
+  static RefCountedPtr<MomentumBackwardEuler > s_veloIntegratorBE;
+
+  static RefCountedPtr< MomentumTGA > s_veloIntegratorTGA; 
+
+  static RefCountedPtr<AMRMultiGrid< LevelData<EBCellFAB> > >  s_veloSolver;
+
+  //  static BiCGStabSolver<LevelData<EBCellFAB> > s_botSolver;
+  static EBSimpleSolver s_botSolver;
+
+  // diffusion coefficients:
+  // alpha a I + beta*div(eta(grad B + grad B^T) + lambda* I div B ) = rhs
+  //! End-of-step A coefficient for the viscous diffusion equation.
+  Vector<RefCountedPtr<LevelData<EBCellFAB> > >  m_acoVelo;
+  Vector<RefCountedPtr<LevelData<EBFluxFAB> > >  m_eta;
+  // lambda is 0 for incompressible. But just kepping it to make it general
+  Vector<RefCountedPtr<LevelData<EBFluxFAB> > >  m_lambda;
+  Vector<RefCountedPtr<LevelData<BaseIVFAB<Real> > > > m_etaIrreg;
+  Vector<RefCountedPtr<LevelData<BaseIVFAB<Real> > > > m_lambdaIrreg;
+
+  void clearSolvers();
+  void defineSolvers();
+  void defineFactories(bool a_atHalfTime); 
+
+  /// where the diffusion coefficients get filled
+  void fillCoefficients();
+ 
 private:
 
   //we disallow copy construction and assignment of objects
