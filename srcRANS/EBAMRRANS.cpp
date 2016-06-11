@@ -1858,6 +1858,43 @@ setNormalVelOld(const LevelData<EBFluxFAB>& a_advVel,
   m_oldNormalVelSet = true;
   m_ebLevelRANS.computeNormalVel(m_normalVelOld, a_advVel, a_coveredAdvVelLo, a_coveredAdvVelHi);
 }
+/**********/
+void EBAMRRANS::
+fillDriverDiffusionCoefficients(RefCountedPtr<LevelData<EBFluxFAB> >& a_diffCoeff,
+                                RefCountedPtr<LevelData<BaseIVFAB<Real> > >& a_diffCoeffIrreg)
+{
+// the ugly stuff  
+  EBCellFactory cellFact(m_eblgPtr->getEBISL());
+  EBFluxFactory fluxFact(m_eblgPtr->getEBISL());
+  int nghost = 4;
+
+  LevelData<EBCellFAB> stateCell(m_eblgPtr->getDBL(), m_nComp, nghost*IntVect::Unit, cellFact);
+  LevelData<EBFluxFAB> stateFace(m_eblgPtr->getDBL(), m_nComp, IntVect::Zero, fluxFact);
+
+  m_stateOld.copyTo(Interval(0,m_nComp-1), stateCell, Interval(0,m_nComp-1));
+
+  if (m_hasCoarser)
+   {
+     EBAMRRANS* coarPtr = getCoarserLevel();
+     EBPWLFillPatch patcher(m_eblgPtr->getDBL(), coarPtr->m_eblgPtr->getDBL(),
+                             m_eblgPtr->getEBISL(), coarPtr->m_eblgPtr->getEBISL(),
+                             coarPtr->m_eblgPtr->getDomain(), m_ref_ratio, m_nComp, nghost);
+
+     EBCellFactory coarFact(coarPtr->m_eblgPtr->getEBISL());
+     LevelData<EBCellFAB> coarState(coarPtr->m_eblgPtr->getDBL(), m_nComp, nghost*IntVect::Unit, coarFact);
+
+     coarPtr->m_stateNew.copyTo(Interval(0,m_nComp-1), coarState, Interval(0,m_nComp-1));
+
+     patcher.interpolate(stateCell, coarState, coarState, m_time, m_time, m_time, Interval(0,m_nComp-1)); 
+   }
+
+  for (int iEqn = 0; iEqn < m_nEqn; iEqn++)
+   {
+     EBLevelDataOps::averageCellToFaces(stateFace, stateCell, m_eblgPtr->getDBL(), m_eblgPtr->getEBISL(), m_eblgPtr->getDomain(), iEqn); 
+   }
+
+  m_ebLevelRANS.fillDriverDiffusionCoefficients(a_diffCoeff, a_diffCoeffIrreg, stateCell, stateFace, m_time, m_dt); // m_stateOld because the driver is advanced before this
+}
 /******************/
 /******************/
 #ifdef CH_USE_HDF5

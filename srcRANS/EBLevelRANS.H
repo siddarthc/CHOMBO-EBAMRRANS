@@ -61,6 +61,12 @@ public:
                                         const LevelData<EBFluxFAB>&  a_stateFace,
                                         Real a_time, Real a_dt);
 
+   // if this is being driven by an external driver, and the drivers diffusion coefficients depend on this, fill them here
+  virtual void fillDriverDiffusionCoefficients(RefCountedPtr<LevelData<EBFluxFAB> >& a_diffCoeff,
+                                               RefCountedPtr<LevelData<BaseIVFAB<Real> > >& a_diffCoeffIrreg,
+                                               const LevelData<EBCellFAB>& a_stateCell,
+                                               const LevelData<EBFluxFAB>& a_stateFace, Real a_time, Real a_dt);
+
 protected:
 
   RefCountedPtr<EBPatchRANSModel> m_ebPatchModel;

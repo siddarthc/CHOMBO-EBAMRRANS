@@ -273,6 +273,10 @@ public:
 
   virtual int numConserved() = 0;
 
+  // if this is being driven by an external driver, and the drivers diffusion coefficients depend on this, fill them here
+  virtual void fillDriverDiffusionCoefficients(RefCountedPtr<LevelData<EBFluxFAB> >& a_diffCoeff, 
+                                                RefCountedPtr<LevelData<BaseIVFAB<Real> > >& a_diffCoeffIrreg) = 0;
+
 #ifdef CH_USE_HDF5
   ///
   /**

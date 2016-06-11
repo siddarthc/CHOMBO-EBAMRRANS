@@ -196,5 +196,21 @@ getDiffusionCoefficients(BaseIVFAB<Real>& a_diffCoeffIrreg,
 {
 
 }
+/*********/
+void kEpsilon::
+fillDriverDiffusionCoefficients(EBFluxFAB&       a_diffCoeff,
+                         const EBFluxFAB& a_stateFace,
+                         const Box&       a_box)
+{
+
+}
+/**********/
+void kEpsilon::
+fillDriverDiffusionCoefficients(BaseIVFAB<Real>& a_diffCoeffIrreg,
+                         const EBCellFAB& a_stateCell,
+                         const IntVectSet& a_ivs)
+{
+
+}
 /**********/
 #include "NamespaceFooter.H"

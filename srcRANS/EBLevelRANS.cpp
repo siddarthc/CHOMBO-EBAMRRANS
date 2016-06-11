@@ -120,4 +120,29 @@ getDiffusionCoefficients(LevelData<EBFluxFAB>&        a_diffCoeff,
    }  
 }
 /**********/
+void EBLevelRANS::
+fillDriverDiffusionCoefficients(RefCountedPtr<LevelData<EBFluxFAB> >&        a_diffCoeff,
+                         RefCountedPtr<LevelData<BaseIVFAB<Real> > >& a_diffCoeffIrreg,
+                         const LevelData<EBCellFAB>&  a_stateCell,
+                         const LevelData<EBFluxFAB>&  a_stateFace,
+                         Real a_time, Real a_dt)
+{
+  for (DataIterator dit = m_thisGrids.dataIterator(); dit.ok(); ++dit)
+   {
+     EBFluxFAB& diffCoeff = (*a_diffCoeff)[dit()];
+     BaseIVFAB<Real>& diffCoeffIrreg = (*a_diffCoeffIrreg)[dit()];
+     const EBCellFAB& stateCell = a_stateCell[dit()];
+     const EBFluxFAB& stateFace = a_stateFace[dit()];
+
+     const IntVectSet& cfivs = m_cfIVS[dit()];
+     const EBISBox& ebisBox = m_thisEBISL[dit()];
+     const Box& cellBox = m_thisGrids.get(dit());
+     m_ebPatchModel->setValidBox(cellBox, ebisBox, cfivs, a_time, a_dt);
+     m_ebPatchModel->fillDriverDiffusionCoefficients(diffCoeff, stateFace, cellBox);
+ 
+     const IntVectSet& ivs = ebisBox.getIrregIVS(cellBox);
+     m_ebPatchModel->fillDriverDiffusionCoefficients(diffCoeffIrreg, stateCell, ivs);
+   }
+}
+/**********/
 #include "NamespaceFooter.H"

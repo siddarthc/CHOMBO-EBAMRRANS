@@ -164,6 +164,14 @@ public:
                                         const EBCellFAB& a_stateCell,
                                         const IntVectSet& a_ivs) = 0;
 
+  virtual void fillDriverDiffusionCoefficients(EBFluxFAB&       a_diffCoeff,
+                                        const EBFluxFAB& a_stateFace,
+                                        const Box&       a_box) = 0;
+
+  virtual void fillDriverDiffusionCoefficients(BaseIVFAB<Real>& a_diffCoeffIrreg,
+                                        const EBCellFAB& a_stateCell,
+                                        const IntVectSet& a_ivs) = 0;
+
 protected:
 
   /// 
