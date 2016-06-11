@@ -112,6 +112,12 @@ EBAMRNoSubcycle(const AMRParameters&      a_params,
   m_coveredSetsLitLo.resize(nlevels, NULL);
   m_coveredSetsLitHi.resize(nlevels, NULL);
 
+  m_acoVelo.resize(nlevels);
+  m_eta.resize(nlevels);
+  m_lambda.resize(nlevels);
+  m_etaIrreg.resize(nlevels);
+  m_lambda.resize(nlevels);
+
   allocateDataHolders();
 
   m_domain[0] = a_coarsestDomain;
@@ -360,6 +366,8 @@ setupForAMRRun()
   defineIrregularData();
   //finally, call post-initialization
   postInitialize();
+
+  defineSolvers();
 
 // this is because the tags dont depend on the extra solver 
 // if the tags do depend, this is wrong! 
@@ -1025,6 +1033,8 @@ EBAMRNoSubcycle::postRegrid()
     }
   m_advanceGphiOnly = false;
 
+  defineSolvers();
+
 /*
   if (m_extraSolverDefined)
     {
@@ -1278,6 +1288,8 @@ EBAMRNoSubcycle::initialGrid(const Vector<Vector<Box> >& a_vectBoxes)
   definePressure();
   defineExtraTerms();
   defineProjections();
+
+  defineDiffusionCoefficients();
 }
 /*********************/
 void
@@ -1821,6 +1833,9 @@ regrid(const Vector<Vector<Box> >& a_newGrids)
   definePressure();
   defineProjections();
   defineExtraTerms();
+
+  defineDiffusionCoefficients();
+
   //now fill new data holders, copying from old over old grids and interpolating where there is new grid
   tempLDPtr[0]->copyTo(interv, *m_velo[0], interv);
   tempLDPtr2[0]->copyTo(interv, *m_gphi[0], interv);
@@ -2399,6 +2414,11 @@ advance()
         }
     }
 */
+
+  EBViscousTensorOp::s_step = m_curStep;
+
+  if (m_extraSolverDepViscosity) defineSolvers();
+  
   predictor();
   corrector();
 
@@ -4022,6 +4042,9 @@ EBAMRNoSubcycle::readCheckpointFile(const string& a_restartFile)
   defineNewVel();
   definePressure();
   defineExtraTerms();
+
+  defineDiffusionCoefficients();
+
   //now input the actual data
   for (int ilev = 0; ilev <= m_finestLevel; ilev++)
     {
@@ -4136,6 +4159,8 @@ setupForRestart(const string& a_restartFile)
       defineExtraTerms(startLevel);
       defineProjections();
 
+      defineDiffusionCoefficients(startLevel);
+
       for (int ilev=0; ilev<=oldFinestLevel; ilev++)
         {
           tempLDPtr[ilev]->copyTo(interv, *m_velo[ilev], interv);
@@ -4181,6 +4206,8 @@ setupForRestart(const string& a_restartFile)
       defineIrregularData();
       postInitialize();
     }
+
+  defineSolvers();
 
   if (m_extraSolverDefined)
     {
@@ -4391,5 +4418,64 @@ void EBAMRNoSubcycle::defineFactories(bool a_atHalfTime)
 /*********/
 void EBAMRNoSubcycle::fillCoefficients()
 {
+  for (int ilev = 0; ilev < m_finestLevel+1; ilev++)
+    {
+      // aco is filled in kappaMomentumSource
 
+      // m_lambda is zero for incompressible
+      for (DataIterator dit = m_grids[ilev].dataIterator(); dit.ok(); ++dit)
+        {
+          (*m_lambda[ilev])[dit()].setVal(0.);
+          (*m_lambdaIrreg[ilev])[dit()].setVal(0.);
+        }
+
+      if (m_extraSolverDepViscosity)
+        {
+          m_amrlevels[ilev]->fillDriverDiffusionCoefficients(m_eta[ilev], m_etaIrreg[ilev]); 
+        }
+      else
+        {
+          for (DataIterator dit = m_grids[ilev].dataIterator(); dit.ok(); ++dit)
+            {
+              (*m_eta[ilev])[dit()].setVal(m_viscosity);
+              (*m_etaIrreg[ilev])[dit()].setVal(m_viscosity);
+            }
+        } 
+    }
+}
+/********/
+void EBAMRNoSubcycle::defineDiffusionCoefficients(const int a_startLevel)
+{
+  CH_TIME("EBAMRNoSubcycle::defineDiffusionCoefficients");
+  if (m_params.m_verbosity > 3)
+    {
+      pout() << "EBAMRNoSubcycle::defineDiffusionCoefficients" << endl;
+    }
+  int startLevel = 0;
+  if (a_startLevel > startLevel)
+    {
+      startLevel=a_startLevel;
+    }
+
+  for (int ilev = startLevel; ilev <= m_finestLevel; ilev++)
+    {
+      EBCellFactory ebcellFact(m_ebisl[ilev]);
+      m_acoVelo[ilev] = RefCountedPtr< LevelData<EBCellFAB> >       (new LevelData<EBCellFAB>       (m_grids[ilev], 1, 4*IntVect::Unit, ebcellFact));
+
+      EBFluxFactory ebfluxFact(m_ebisl[ilev]);
+      m_eta[ilev] = RefCountedPtr< LevelData<EBFluxFAB> > (new LevelData<EBFluxFAB>       (m_grids[ilev], 1, 4*IntVect::Unit, ebfluxFact));
+      m_lambda[ilev] = RefCountedPtr< LevelData<EBFluxFAB> > (new LevelData<EBFluxFAB>       (m_grids[ilev], 1, 4*IntVect::Unit, ebfluxFact));
+
+      LayoutData<IntVectSet> sets;  
+      sets.define(m_grids[ilev]);
+      for(DataIterator dit = m_grids[ilev].dataIterator(); dit.ok(); ++dit)
+        {
+          sets[dit()] = m_ebisl[ilev][dit()].getIrregIVS(m_grids[ilev].get(dit()));
+        }
+
+      BaseIVFactory<Real> bivfFact(m_ebisl[ilev], sets);
+      m_etaIrreg[ilev] = RefCountedPtr< LevelData<BaseIVFAB<Real> > >(new LevelData<BaseIVFAB<Real> >(m_grids[ilev], 1, 4*IntVect::Unit, bivfFact));
+      m_lambdaIrreg[ilev] = RefCountedPtr< LevelData<BaseIVFAB<Real> > >(new LevelData<BaseIVFAB<Real> >(m_grids[ilev], 1, 4*IntVect::Unit, bivfFact));
+
+  }
 }

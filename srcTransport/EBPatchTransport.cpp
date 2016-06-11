@@ -1160,7 +1160,7 @@ floorPrimitives(EBCellFAB&  a_primState,
 {
   if (m_isMaxMinSet)
     {
-      CH_assert(numPrimitives()==1);
+      CH_assert(a_primState.nComp()==1);
       BaseFab<Real>& primReg = a_primState.getSingleValuedFAB();
 
       FORT_FLOORPRIM(CHF_BOX(a_box),
@@ -1203,7 +1203,7 @@ floorConserved(EBCellFAB&  a_consState,
 {
   if (m_isMaxMinSet)
     {
-      CH_assert(numConserved()==1);
+      CH_assert(a_consState.nComp()==1);
       BaseFab<Real>& consReg = a_consState.getSingleValuedFAB();
 
       FORT_FLOORCONS(CHF_BOX(a_box),

@@ -43,7 +43,7 @@ public:
      destroys all objects created by define(..). Passed in
      data references of define(..) are left alone.
   */
-  ~EBLevelTransport();
+  virtual ~EBLevelTransport();
 
   EBLevelTransport(const DisjointBoxLayout&           a_thisDBL,
                    const DisjointBoxLayout&           a_coarDBL,
@@ -67,24 +67,24 @@ public:
      this level and the next coarser level.  a_numGhosts is the number
      of ghost cells in each direction.
   */
-  void define(const DisjointBoxLayout&           a_thisDBL,
-              const DisjointBoxLayout&           a_coarDBL,
-              const EBISLayout&                  a_thisEBISL,
-              const EBISLayout&                  a_coarEBISL,
-              const ProblemDomain&               a_DProblem,
-              const int&                         a_nRefine,
-              const RealVect&                    a_dx,
-              const bool&                        a_hasCoarser,
-              const bool&                        a_hasFiner,
-              RefCountedPtr<EBPatchTransport>&   a_patchGodunov,
-              const EBIndexSpace*                const a_eb = Chombo_EBIS::instance());
+  virtual void define(const DisjointBoxLayout&           a_thisDBL,
+                      const DisjointBoxLayout&           a_coarDBL,
+                      const EBISLayout&                  a_thisEBISL,
+                      const EBISLayout&                  a_coarEBISL,
+                      const ProblemDomain&               a_DProblem,
+                      const int&                         a_nRefine,
+                      const RealVect&                    a_dx,
+                      const bool&                        a_hasCoarser,
+                      const bool&                        a_hasFiner,
+                      RefCountedPtr<EBPatchTransport>&   a_patchGodunov,
+                     const EBIndexSpace*                const a_eb = Chombo_EBIS::instance());
 
-  bool isDefined() const;
+  virtual bool isDefined() const;
 
-  void floorPrimitives(LevelData<EBCellFAB>&         a_primState,
+  virtual void floorPrimitives(LevelData<EBCellFAB>&         a_primState,
                        Real a_time, Real a_dt);
 
-  void floorConserved(LevelData<EBCellFAB>&         a_consState,
+  virtual void floorConserved(LevelData<EBCellFAB>&         a_consState,
                        Real a_time, Real a_dt);
 
   /// outputs divergeF.  a_cons gets its ghost cells filled
@@ -101,7 +101,7 @@ public:
      To the coarser level FR, this level is the fine level.
      outputs divergeF.  a_cons gets its ghost cells filled
   */
-  void divergeF(LevelData<EBCellFAB>&         a_divergeF,
+  virtual void divergeF(LevelData<EBCellFAB>&         a_divergeF,
                 LevelData<BaseIVFAB<Real> >&  a_massDiff,
                 EBFluxRegister&               a_fineFluxRegister,
                 EBFluxRegister&               a_coarFluxRegister,
@@ -120,14 +120,14 @@ public:
                 const Real&                   a_coarTimeNew,
                 const Real&                   a_dt);
 
-  void computeNormalVel(LevelData<EBCellFAB>&                   a_normalVel,
+  virtual void computeNormalVel(LevelData<EBCellFAB>&                   a_normalVel,
                  const LevelData<EBFluxFAB>&                    a_advectionVel,
                  const LayoutData<Vector<BaseIVFAB<Real> * > >& a_coveredVeloLo,
                  const LayoutData<Vector<BaseIVFAB<Real> * > >& a_coveredVeloHi); 
 
 protected:
 
-  void fillCons(LevelData<EBCellFAB>&         a_consState,
+  virtual void fillCons(LevelData<EBCellFAB>&         a_consState,
                 LevelData<EBCellFAB>&         a_normalVel,
                 const LevelData<EBCellFAB>&   a_consStateCoarseOld,
                 const LevelData<EBCellFAB>&   a_consStateCoarseNew,
@@ -137,10 +137,10 @@ protected:
                 const Real&                   a_coarTimeOld,
                 const Real&                   a_coarTimeNew);
 
-  void computeFlattening(LevelData<EBCellFAB>&         a_cons,
+  virtual void computeFlattening(LevelData<EBCellFAB>&         a_cons,
                          Real a_time, Real a_dt);
 
-  void doRegularUpdate(LevelData<EBCellFAB>&         a_divergeF,
+  virtual void doRegularUpdate(LevelData<EBCellFAB>&         a_divergeF,
                        LevelData<EBCellFAB>&         a_cons,
                        const LevelData<EBCellFAB>&   a_normalVel,
                        const LevelData<EBFluxFAB>&   a_advVel,
@@ -151,7 +151,7 @@ protected:
                        const LevelData<EBCellFAB>&   a_source,
                        Real a_time, Real a_dt);
 
-  void doIrregularUpdate(LevelData<EBCellFAB>&         a_divergeF,
+  virtual void doIrregularUpdate(LevelData<EBCellFAB>&         a_divergeF,
                          LevelData<EBCellFAB>&         a_cons,
                          EBFluxRegister&               a_fineFluxRegister,
                          EBFluxRegister&               a_coarFluxRegister,

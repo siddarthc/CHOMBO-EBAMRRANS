@@ -305,27 +305,28 @@ cccccccccccccc
 
       if(doingvel .eq. 1) then
 c     velocity gets done non-conservatively
-         do iv = 0,nconserved - 1
-
-            chf_multido[dcalc;i;j;k]
-
-            uave =
+    
+         chf_multido[dcalc;i;j;k]
+         
+         uave =
      &           (facevel(chf_ix[i+ioff;j+joff;k+koff])
-     &           +facevel(chf_ix[i     ;j     ;k     ]))/two
+     &           +facevel(chf_ix[i     ;j     ;k     ]))/two           
+     
+            do iv = 0,nconserved - 1   
+
             rhodiff =
      &           (facerho(chf_ix[i+ioff;j+joff;k+koff],iv)
      &           -facerho(chf_ix[i     ;j     ;k     ],iv))/dx
 
             udelrho(chf_ix[i;j;k],iv) = udelrho(chf_ix[i;j;k],iv) +  uave*rhodiff
 
-            chf_enddo
-
-         enddo
+            enddo
+         chf_enddo
 
       else
-         do iv = 0,nconserved - 1
+         chf_multido[dcalc;i;j;k]
 
-            chf_multido[dcalc;i;j;k]
+            do iv = 0,nconserved - 1
 
             hival = facevel(chf_ix[i+ioff;j+joff;k+koff])*facerho(chf_ix[i+ioff;j+joff;k+koff],iv)
             loval = facevel(chf_ix[i     ;j     ;k     ])*facerho(chf_ix[i     ;j     ;k     ],iv)
@@ -333,9 +334,9 @@ c     velocity gets done non-conservatively
 
             udelrho(chf_ix[i;j;k],iv) = udelrho(chf_ix[i;j;k],iv) + (hival-loval)/dx
 
-            chf_enddo
+            enddo
 
-         enddo
+         chf_enddo
 
       endif
 
@@ -445,8 +446,8 @@ c     &     chf_const_fra[normalvel],
 
       tol = 1.e-12
 
-      do iv = 0,nprim - 1
-         chf_multido[dcalc;i;j;k]
+      chf_multido[dcalc;i;j;k]
+         do iv = 0,nprim - 1   
 
          velface  = advectvel(chf_ix[i;j;k])
 c         if(velface.gt.zero) then
@@ -490,8 +491,8 @@ c     $              primleft(chf_ix[i-ioff;j-joff;k-koff],iv))
 c            endif
 c         endif
 
-         chf_enddo
-      enddo
+         enddo    
+      chf_enddo
 
       return
       end

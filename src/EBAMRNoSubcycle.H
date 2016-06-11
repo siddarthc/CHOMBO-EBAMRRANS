@@ -719,6 +719,8 @@ protected:
 
   /// where the diffusion coefficients get filled
   void fillCoefficients();
+
+  void defineDiffusionCoefficients(const int a_startLevel = -1);
  
 private:
 

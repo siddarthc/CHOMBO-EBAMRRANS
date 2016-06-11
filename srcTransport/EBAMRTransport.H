@@ -125,6 +125,13 @@ public:
                                const LayoutData< Vector< BaseIVFAB<Real> * > >& a_coveredAdvVelLo,
                                const LayoutData< Vector< BaseIVFAB<Real> * > >& a_coveredAdvVelHi);
 
+  // if this is being driven by an external driver, and the drivers diffusion coefficients depend on this, fill them here
+  virtual void fillDriverDiffusionCoefficients(RefCountedPtr<LevelData<EBFluxFAB> >&        a_diffCoeff,
+                                               RefCountedPtr<LevelData<BaseIVFAB<Real> > >& a_diffCoeffIrreg)
+  {
+    MayDay::Error("EBAMRTransport::fillDiffusionCoefficients is not set. Currently doing only passive transport");  
+  }
+
   #ifdef CH_USE_HDF5
   // ---------------------------------------------------
   // HDF5 routines for plotting and writing checkpoints.
