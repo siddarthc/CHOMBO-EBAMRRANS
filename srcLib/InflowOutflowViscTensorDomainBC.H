@@ -109,6 +109,9 @@ public:
   }
 
 protected:
+
+  void whereAMI(bool a_isInsideTube, const RealVect& a_loc);
+  
   //weak construction forbidden
   InflowOutflowViscTensorDomainBC()
   {
