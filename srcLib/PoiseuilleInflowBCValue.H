@@ -34,6 +34,7 @@
 */
 class PoiseuilleInflowBCValue: public BaseBCValue
 {
+
 public:
 
   PoiseuilleInflowBCValue(const RealVect& a_centerPt,
@@ -43,6 +44,7 @@ public:
                           const int&      a_velComp,
                           const Real&     a_viscosity)
   {
+    m_isDefined = false;
     define(a_centerPt, a_tubeAxis, a_tubeRadius, a_avgVel, a_velComp, a_viscosity);
   }
 
@@ -53,6 +55,7 @@ public:
               const int&      a_velComp,
               const Real&     a_viscosity)
   {
+    m_isDefined = true;
     m_centerPt   = a_centerPt;
     m_tubeAxis   = a_tubeAxis;
     m_tubeRadius = a_tubeRadius;
@@ -81,11 +84,13 @@ public:
 
   PoiseuilleInflowBCValue()
   {
+    m_isDefined = false;
     m_tubeRadius = -1;
   }
 
 // private:
 public:
+  bool          m_isDefined;
   RealVect      m_centerPt;
   RealVect      m_tubeAxis;
   Real          m_tubeRadius;

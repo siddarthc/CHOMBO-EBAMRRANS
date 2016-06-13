@@ -11,11 +11,17 @@
 #include "InflowOutflowIBC.H"
 #include "InflowOutflowAdvectBC.H"
 #include "InflowOutflowPoissonDomainBC.H"
+#include "InflowOutflowViscTensorDomainBC.H"
 #include "VoFIterator.H"
 #include "NeumannPoissonEBBC.H"
 #include "InflowOutflowIBC.H"
 #include "EBLevelDataOps.H"
 #include "ParmParse.H"
+
+#include "DirichletViscousTensorEBBC.H"
+#include   "NeumannViscousTensorEBBC.H"
+#include "DirichletViscousTensorDomainBC.H"
+#include   "NeumannViscousTensorDomainBC.H"
 
 #include "NamespaceHeader.H"
 
@@ -57,6 +63,32 @@ InflowOutflowIBC::getVelBC(int a_icomp) const
   return helmBC;
 }
 
+RefCountedPtr<BaseDomainBCFactory>
+InflowOutflowIBC::getViscTensorVelBC() const
+{
+  
+  RefCountedPtr<BaseDomainBCFactory> viscousBC = RefCountedPtr<BaseDomainBCFactory>(new InflowOutflowViscTensorDomainBCFactory(m_flowDir,
+
+                                           m_doJet2,
+
+                                           m_jet1inflowVel,
+
+                                           m_jet2inflowVel,
+
+                                           m_doJet1PoiseInflow,
+
+                                           m_doJet2PoiseInflow,
+
+                                           m_doSlipWallsHi,
+
+                                           m_doSlipWallsLo,
+
+                                           m_jet1PoiseInflowFunc,
+
+                                           m_jet2PoiseInflowFunc));
+  return viscousBC;
+}
+
 ///
 RefCountedPtr<BaseEBBCFactory>
 InflowOutflowIBC::getVelocityEBBC(int a_velComp) const
@@ -71,6 +103,19 @@ InflowOutflowIBC::getVelocityEBBC(int a_velComp) const
 
   return retval;
 }
+
+RefCountedPtr<BaseEBBCFactory>
+InflowOutflowIBC::getViscTensorVelocityEBBC() const
+{
+  // No slip no flow EBBCs for now
+  RefCountedPtr<BaseEBBCFactory>  retval;
+  DirichletViscousTensorEBBCFactory* diribc = new DirichletViscousTensorEBBCFactory();
+  diribc->setValue(0.);
+  retval = RefCountedPtr<BaseEBBCFactory>(diribc); 
+
+  return retval;
+}
+
 ///
 RefCountedPtr<BaseDomainBCFactory>
 InflowOutflowIBC::

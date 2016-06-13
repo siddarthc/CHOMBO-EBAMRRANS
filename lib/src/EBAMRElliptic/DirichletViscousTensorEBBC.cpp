@@ -416,7 +416,7 @@ getGradientFunction(Real             a_grad[SpaceDim][SpaceDim],
     {
       normalStencil.setAllVariables(ivar);
       Real normalGrad = applyVoFStencil(normalStencil, a_phi, ivar);
-      Real value = m_func->value(point, ivar);
+      Real value = m_func->value(point, ivar, 0.);
       normalGrad += weight*value;
 
       RealVect normTanGrad = RealVect::Zero;

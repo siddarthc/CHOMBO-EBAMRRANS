@@ -74,7 +74,7 @@ getFaceFlux(BaseFab<Real>&        a_flux,
           point[a_idir] -=  0.5 * a_dx[a_idir];//point is now at the face center
           for (int comp = 0; comp < SpaceDim; comp++)
             {
-              Real value = m_func->value(point, comp);
+              Real value = m_func->value(point, comp, a_time);
               phiValu(iv, comp) = value;
               for (int derivDir = 0; derivDir < SpaceDim; derivDir++)
                 {
@@ -199,7 +199,7 @@ getDivergenceAndGradient(Real&                 a_divergence,
         {
           if (m_isFunction)
             {
-              value = m_func->value(point, comp);
+              value = m_func->value(point, comp, a_time);
             }
           else
             {

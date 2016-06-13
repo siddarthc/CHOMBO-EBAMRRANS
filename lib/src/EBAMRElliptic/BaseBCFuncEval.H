@@ -27,7 +27,8 @@ public:
   }
 
   virtual Real value(const RealVect& a_point,
-                     const int&      a_comp) const = 0;
+                     const int&      a_comp,
+                     const Real&     a_time) const = 0;
 
   virtual Real derivative(const RealVect& a_point,
                           const int&      a_comp,

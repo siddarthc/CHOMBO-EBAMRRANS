@@ -185,11 +185,16 @@ public:
    */
   virtual RefCountedPtr<BaseDomainBCFactory> getVelBC(int a_icomp) const ;
 
+  // this is for the new solver
+  virtual RefCountedPtr<BaseDomainBCFactory> getViscTensorVelBC() const;
+
   ///
   /**
      Return velocity boundary conditions for embedded boundary.
   */
   virtual RefCountedPtr<BaseEBBCFactory> getVelocityEBBC(int a_velComp) const ;
+
+  virtual RefCountedPtr<BaseEBBCFactory> getViscTensorVelocityEBBC() const;
 
   virtual RefCountedPtr<BaseEBBCFactory> getScalarEBBC() const
   {

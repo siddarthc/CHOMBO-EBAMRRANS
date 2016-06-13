@@ -116,7 +116,7 @@ EBAMRNoSubcycle(const AMRParameters&      a_params,
   m_eta.resize(nlevels);
   m_lambda.resize(nlevels);
   m_etaIrreg.resize(nlevels);
-  m_lambda.resize(nlevels);
+  m_lambdaIrreg.resize(nlevels);
 
   allocateDataHolders();
 
@@ -400,7 +400,8 @@ filter(Vector<LevelData<EBCellFAB>* >&   a_veloc)
               coarVelocPtr =  a_veloc[ilev-1];
               refRat = m_params.m_refRatio[ilev-1];
             }
-          Real lambdaScale = 0.125; // default value in EBGradDivFilter.H
+         
+          Real scale = 0.125; // default value in EBGradDivFilter.H
           EBGradDivFilter gdFilt(m_grids[ilev],
                                  coarGridsPtr,
                                  m_ebisl[ilev],
@@ -408,7 +409,7 @@ filter(Vector<LevelData<EBCellFAB>* >&   a_veloc)
                                  m_domain[ilev],
                                  m_dx[ilev]*RealVect::Unit,
                                  refRat,
-                                 lambdaScale,
+                                 scale,
                                  m_ebisPtr);
           //flux velocity used for boundary conditions.  this assumes (correctly) that the
           //projection has just happened.
@@ -769,8 +770,8 @@ EBAMRNoSubcycle::regrid()
 
 
       // preRegrid extra solvers here because amrlevel->preregrid needs new_grids as an argument
-
-       preRegridExtraSolver(lbase, new_grids);
+    
+       if (m_extraSolverDefined) preRegridExtraSolver(lbase, new_grids);
 
       //now redefine grid hierarchy
       regrid(new_grids);
@@ -782,9 +783,9 @@ EBAMRNoSubcycle::regrid()
       //finish up
       postRegrid();
 
-      regridExtraSolver(lbase, new_grids);
+      if (m_extraSolverDefined) regridExtraSolver(lbase, new_grids);
       
-      postRegridExtraSolver(lbase);
+      if (m_extraSolverDefined) postRegridExtraSolver(lbase);
     } //end if max level > 0
 }
 /*********************/
@@ -4353,7 +4354,7 @@ defineSolvers()
   int coarsestLevel = 0;
   if (m_viscousCalc)
    {
-     ProblemDomain lev0Dom = m_eblg[0].getDomain();
+     ProblemDomain lev0Dom = m_domain[0];
      int nlevels = m_finestLevel + 1;
 
      s_veloSolver = RefCountedPtr<AMRMultiGrid< LevelData<EBCellFAB> > >( new AMRMultiGrid< LevelData<EBCellFAB> > ());
@@ -4393,8 +4394,7 @@ void EBAMRNoSubcycle::defineFactories(bool a_atHalfTime)
       Real beta  = 1;
       IntVect  giv    = 4*IntVect::Unit;
 
-      RefCountedPtr<BaseDomainBCFactory> celBCVel = m_ibc->getVelBC(0); // 0 to just fill the arg. Doesn't really matter 
-      RefCountedPtr<BaseEBBCFactory> ebbcVelo = m_ibc->getVelocityEBBC(0); // 0 to just fill he arg
+      RefCountedPtr<BaseDomainBCFactory> celBCVel = m_ibc->getViscTensorVelBC();      RefCountedPtr<BaseEBBCFactory> ebbcVelo = m_ibc->getViscTensorVelocityEBBC(); 
 
       // Viscous tensor operator.
       bool noMG = true;

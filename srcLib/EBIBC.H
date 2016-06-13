@@ -155,6 +155,8 @@ public:
    */
   virtual RefCountedPtr<BaseDomainBCFactory> getVelBC(int a_icomp) const = 0;
 
+  virtual RefCountedPtr<BaseDomainBCFactory> getViscTensorVelBC() const = 0;
+
   ///
   /**
    */
@@ -193,6 +195,7 @@ public:
    */
   virtual RefCountedPtr<BaseEBBCFactory> getVelocityEBBC(int a_velComp) const = 0;
 
+  virtual RefCountedPtr<BaseEBBCFactory> getViscTensorVelocityEBBC() const = 0;
 
   ///
   /**
