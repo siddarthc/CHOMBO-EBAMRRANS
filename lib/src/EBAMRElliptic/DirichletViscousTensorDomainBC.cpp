@@ -71,7 +71,7 @@ getFaceFlux(BaseFab<Real>&        a_flux,
         {
           const IntVect& iv = bit();
           RealVect point = EBArith::getIVLocation(iv,a_dx,a_probLo);
-          point[a_idir] -=  0.5 * a_dx[a_idir];//point is now at the face center
+          point[a_idir] -= iside * 0.5 * a_dx[a_idir];//point is now at the face center
           for (int comp = 0; comp < SpaceDim; comp++)
             {
               Real value = m_func->value(point, comp, a_time);
