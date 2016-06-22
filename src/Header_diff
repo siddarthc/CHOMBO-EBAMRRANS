@@ -1,0 +1,30 @@
+26c26
+< //#include "EBFastFR.H"
+---
+> #include "EBFastFR.H"
+380a381,389
+>   virtual void getViscousOp(Vector<LevelData<EBCellFAB>* >& a_viscousLinearOp,
+>                             Vector<LevelData<EBCellFAB>* >& a_tempVelocity,
+>                             Vector<LevelData<EBCellFAB>* >& a_solverRHS,
+>                             int a_baseLev, int a_finestLev, Real a_dtBase);
+> 
+>   virtual void smoothVelocity(Vector<LevelData<EBCellFAB>* >& a_smoothVel, 
+>                               Vector<LevelData<EBCellFAB>* >& a_solverRHS, 
+>                               int a_baseLev, int a_finestLev, Real a_dtBase);
+> 
+678c687,688
+<   Vector<RefCountedPtr<EBFluxRegister> > m_fluxReg;
+---
+>   Vector<RefCountedPtr<EBFastFR     >  > m_fluxReg;
+>   Vector<RefCountedPtr<EBFluxRegister >  > m_veloFluxRegister;
+724a735,744
+> 
+>   void kappaMomentumSource(LevelData<EBCellFAB>& a_kappaDivSigma,
+>                            const LevelData<EBCellFAB>* a_velocity,
+>                     	   const LevelData<EBCellFAB>* a_veloCoar,
+>                     	   const int a_lev);
+> 
+>   void getViscousSource(LevelData<EBCellFAB>&       a_viscousSrc,
+>                         const LevelData<EBCellFAB>* a_velo,
+>                         const LevelData<EBCellFAB>* a_veloCoar,
+>                         int a_level);

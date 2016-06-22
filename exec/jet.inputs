@@ -37,17 +37,17 @@ order_time            = 2
 use_limiting          = 1
 domain_length         = 10.0
 #domain_periodicity    = 0 1 1 
-do_regrid_smoothing = true
+do_regrid_smoothing = false
 
 max_level	      = 3
 n_cell                = 64 32 32
 ref_ratio	      = 2 2 2 2 2 2 2 2 2
-num_filter_iterations  = 2
-num_gphi_iterations    = 2
-num_init_iterations    = 2
+num_filter_iterations  = 1
+num_gphi_iterations    = 1
+num_init_iterations    = 1
 
 checkpoint_interval   = 20
-plot_interval	      = 10
+plot_interval	      = 5
 max_grid_size	      = 16
 fill_ratio	      = 0.7
 block_factor	      = 8

@@ -1,0 +1,671 @@
+40c40
+< 
+---
+> #include "KappaSquareNormal.H"
+102a103,105
+> 
+>   m_veloFluxRegister.resize(nlevels);  
+> 
+858,892d860
+<       //allocate bunch of scratch stuff
+<       allocateTemporaries();
+<       allocateExtraTemporaries();
+<       //make cellscratch2 == 0 for residual calc
+<       EBAMRDataOps::setVal(m_cellScratc2, 0.0);
+<       EBAMRDataOps::setVal(m_cellScratc1, 0.0);
+< 
+<       //make vel = (I-mu lapl)vel
+<       Real alpha = 1.0;
+<       Real beta = -4.0*m_dt;
+<       int coarsestLevel = 0;
+<       for (int velComp = 0; velComp < SpaceDim; velComp++)
+<         {
+<           DirichletPoissonEBBC::s_velComp = velComp;
+<           //copy velo into cellscratc1, make cellscratch2 == 0
+<           for (int ilev = 0; ilev <= m_finestLevel; ilev++)
+<             {
+<               Interval srcInterv(velComp, velComp);
+<               Interval dstInterv(0 , 0);
+<               m_velo[ilev]->copyTo(srcInterv, *m_cellScratch[ilev], dstInterv);
+<             }
+< 
+<           if (m_params.m_orderTimeIntegration == 2)
+<             {
+<               m_tgaSolver[velComp]->setTime(m_time);
+<               m_tgaSolver[velComp]->resetAlphaAndBeta(alpha, beta);
+<             }
+<           else if (m_params.m_orderTimeIntegration == 1)
+<             {
+<               m_backwardSolver[velComp]->resetAlphaAndBeta(alpha, beta);
+<             }
+<           else
+<             {
+<               MayDay::Error("EBAMRNoSubcycle::preRegrid -- bad order time integration");
+<             }
+894,901c862,883
+<           //apply the operator (by computing the residual with rhs = 0, and * -1
+<           Real junkNorm = 0;
+<           junkNorm = m_solver[velComp]->computeAMRResidual(m_cellScratc1, //comes out holding -(alpha + beta lapl) vel
+<                                                            m_cellScratch, //holds velocity component
+<                                                            m_cellScratc2, //holds zero
+<                                                            m_finestLevel,
+<                                                            coarsestLevel,
+<                                                            false);        //not homogeneous bcs
+---
+>       Vector<LevelData<EBCellFAB>* > viscousOp(m_finestLevel+1, NULL);
+>       Vector<LevelData<EBCellFAB>* > tempVelocity(m_finestLevel+1, NULL);
+>       Vector<LevelData<EBCellFAB>* > solverRHS(m_finestLevel+1, NULL);
+>       for(int ilev = 0; ilev <= m_finestLevel; ilev++)
+>         {
+>           EBCellFactory fact(m_ebisl[ilev]);
+>           viscousOp[ilev] = new LevelData<EBCellFAB>(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact);
+>           tempVelocity[ilev] = new LevelData<EBCellFAB>(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact);
+>           solverRHS[ilev] = new LevelData<EBCellFAB>(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact);   
+> 
+>           m_velo[ilev]->copyTo(*tempVelocity[ilev]); 
+>           EBLevelDataOps::setVal(*viscousOp[ilev], 0.0);
+>           EBLevelDataOps::setVal(*solverRHS[ilev], 0.0);
+>         }
+> 
+>       int coarsestLev = 0;
+>       Real baseDt = m_dt;
+>       getViscousOp(viscousOp, tempVelocity, solverRHS, coarsestLev, m_finestLevel, m_dt);
+>     
+>       // becomes (alpha I + beta div (del + delT) + lambda div) vel
+>       EBAMRDataOps::scale(viscousOp, -1.0);
+>       averageDown(viscousOp);
+902a885,909
+>       for (int ilev = 0; ilev <= m_finestLevel; ilev++)
+>         {
+>           viscousOp[ilev]->copyTo(*m_velo[ilev]);
+>           delete viscousOp[ilev];
+>           delete tempVelocity[ilev];
+>           delete solverRHS[ilev];
+>         }
+>     }
+> }
+> /*********************/
+> void
+> EBAMRNoSubcycle::
+> getViscousOp(Vector<LevelData<EBCellFAB>* >& a_viscousOp,
+>              Vector<LevelData<EBCellFAB>* >& a_tempVelocity,
+>              Vector<LevelData<EBCellFAB>* >& a_solverRHS,
+>              int a_baseLev, int a_finestLev, Real a_dtBase)
+> {
+>   for(int ilev = 0; ilev <= a_finestLev; ilev++)
+>     {
+>       LevelData<EBCellFAB>& acoef = *m_acoVelo[ilev]; 
+>       for(DataIterator dit = m_grids[ilev].dataIterator(); dit.ok(); ++dit)
+>         {
+>           acoef[dit()].setVal(1.0); // I am INS for *'s sake!
+>         }
+>      }
+904,906c911
+<           //make cellscratch hold (alpha + beta lapl) vel
+<           EBAMRDataOps::scale(m_cellScratc1,-1.0);
+<           averageDown(m_cellScratc1);
+---
+>   s_veloIntegratorBE->resetSolverAlphaAndBeta(1.0, -a_dtBase);
+908,919c913
+<           //copy into velocity containers (makes vel := (alpha + beta lapl)vel)
+<           for (int ilev = 0; ilev <= m_finestLevel; ilev++)
+<             {
+<               Interval dstInterv(velComp, velComp);
+<               Interval srcInterv(0 , 0);
+<               m_cellScratc1[ilev]->copyTo(srcInterv, *m_velo[ilev], dstInterv);
+<             }
+<         }//end loop over velocity components
+<       //remove all that scratch space
+<       deleteTemporaries();
+<       deleteExtraTemporaries();
+<     }
+---
+>   Real junkNorm = s_veloSolver->computeAMRResidual(a_viscousOp, a_tempVelocity, a_solverRHS, a_finestLev, a_baseLev, true); // force homogeneous BCs
+929a924,926
+> 
+>   defineSolvers();
+> 
+936,953d932
+<       //allocate bunch of scratch stuff
+<       allocateTemporaries();
+<       allocateExtraTemporaries();
+< 
+<       //make vel = (I-mu lapl)^-1 vel
+<       Real alpha = 1.0;
+<       //beta != -4.0*m_dt*m_viscosity (no viscosity)
+<       Real beta = -4.0*m_dt;
+<       for (int velComp = 0; velComp < SpaceDim; velComp++)
+<         {
+<           DirichletPoissonEBBC::s_velComp = velComp;
+<           //copy velo into cellscratc2 for rhs of tga solve
+<           for (int ilev = 0; ilev <= m_finestLevel; ilev++)
+<             {
+<               Interval srcInterv(velComp, velComp);
+<               Interval dstInterv(0 , 0);
+<               m_velo[ilev]->copyTo(srcInterv, *m_cellScratc2[ilev], dstInterv);
+<             }
+955,967c934,949
+<           if (m_params.m_orderTimeIntegration == 2)
+<             {
+<               m_tgaSolver[velComp]->setTime(m_time);
+<               m_tgaSolver[velComp]->resetAlphaAndBeta(alpha, beta);
+<             }
+<           else if (m_params.m_orderTimeIntegration == 1)
+<             {
+<               m_backwardSolver[velComp]->resetAlphaAndBeta(alpha, beta);
+<             }
+<           else
+<             {
+<               MayDay::Error("EBAMRNoSubcycle::postRegrid -- bad order time integration");
+<             }
+---
+>       Vector<LevelData<EBCellFAB>* > velNew(m_finestLevel+1, NULL);
+>       Vector<LevelData<EBCellFAB>* > solverRHS(m_finestLevel+1, NULL); // this holds the viscousOp calculated on old grids and averaged on to the new grids
+>       for(int ilev = 0; ilev <= m_finestLevel; ilev++)
+>         {
+>           EBCellFactory fact(m_ebisl[ilev]);
+>           velNew[ilev] = new LevelData<EBCellFAB>(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact);
+>           solverRHS[ilev] = new LevelData<EBCellFAB>(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact);
+> 
+>           // m_velo holds the viscousOp calculated on old grids and averaged on to the new grids
+>           m_velo[ilev]->copyTo(*solverRHS[ilev]);
+>           EBLevelDataOps::setVal(*velNew[ilev], 0.0);
+>         }
+>        
+>       int coarsestLev = 0;
+>       Real baseDt = m_dt;
+>       smoothVelocity(velNew, solverRHS, coarsestLev, m_finestLevel, m_dt);
+969,973c951
+<           EBAMRDataOps::setToZero(m_cellScratch);
+<           //solve (I - mu lapl)velnew = velo
+<           m_solver[velComp]->solve(m_cellScratch, //comes out holding desmoothed vel
+<                                    m_cellScratc2, //rhs = vel
+<                                    m_finestLevel, 0);
+---
+>       averageDown(velNew);
+975,989c953,960
+<           averageDown(m_cellScratch);
+< 
+<           //copy into velocity containers (makes vel := (alpha + beta lapl)^-1 vel)
+<           for (int ilev = 0; ilev <= m_finestLevel; ilev++)
+<             {
+<               Interval dstInterv(velComp, velComp);
+<               Interval srcInterv(0 , 0);
+<               m_cellScratch[ilev]->copyTo(srcInterv, *m_velo[ilev], dstInterv);
+<             }
+<         }//end loop over velocity components
+< 
+<       //remove all that scratch space
+<       deleteTemporaries();
+<       deleteExtraTemporaries();
+<     }
+---
+>       //copy into velocity containers (makes vel := (viscousOp on new grid)^-1 (viscousOp applied on velocity on old grid averaged on to the new grids)
+>       for (int ilev = 0; ilev <= m_finestLevel; ilev++)
+>         {
+>           velNew[ilev]->copyTo(*m_velo[ilev]);
+>           delete velNew[ilev];
+>           delete solverRHS[ilev];
+>         }     
+>     }   
+998,999c969,970
+<   Vector<LevelData<EBCellFAB>* > tempLDPtr2;
+<   tempLDPtr2.resize(m_finestLevel+1);
+---
+>   Vector<LevelData<EBCellFAB>* > tempGPhiPtr;
+>   tempGPhiPtr.resize(m_finestLevel+1);
+1003,1005c974,976
+<       tempLDPtr2[ilev] = new LevelData<EBCellFAB>();
+<       tempLDPtr2[ilev]->define(m_grids[ilev], SpaceDim,  IntVect::Zero, ebcellfact);
+<       m_gphi[ilev]->copyTo(interv, *(tempLDPtr2[ilev]), interv);
+---
+>       tempGPhiPtr[ilev] = new LevelData<EBCellFAB>();
+>       tempGPhiPtr[ilev]->define(m_grids[ilev], SpaceDim,  IntVect::Zero, ebcellfact);
+>       m_gphi[ilev]->copyTo(interv, *(tempGPhiPtr[ilev]), interv);
+1014c985
+<       tempLDPtr2[ilev]->copyTo(interv, *m_gphi[ilev], interv);
+---
+>       tempGPhiPtr[ilev]->copyTo(interv, *m_gphi[ilev], interv);
+1019c990
+<       delete tempLDPtr2[ilev];
+---
+>       delete tempGPhiPtr[ilev];
+1036,1040c1007,1014
+< 
+<   defineSolvers();
+< 
+< /*
+<   if (m_extraSolverDefined)
+---
+> }
+> /*********************/
+> void EBAMRNoSubcycle::
+> smoothVelocity(Vector<LevelData<EBCellFAB>* >& a_smoothVel, 
+>                Vector<LevelData<EBCellFAB>* >& a_solverRHS, 
+>                int a_baseLev, int a_finestLev, Real a_dtBase)
+> {
+>   for(int ilev = 0; ilev <= a_finestLev; ilev++)
+1042c1016,1017
+<       for (int level = 0; level<= m_params.m_maxLevel; ++level)
+---
+>       LevelData<EBCellFAB>& acoef = *m_acoVelo[ilev];
+>       for(DataIterator dit = m_grids[ilev].dataIterator(); dit.ok(); ++dit)
+1044c1019
+<           m_amrlevels[level]->setEBLG(m_eblg[level]);
+---
+>           acoef[dit()].setVal(1.0); // I am INS for *'s sake!
+1046,1047c1021,1025
+<     }
+< */
+---
+>      }
+> 
+>   s_veloIntegratorBE->resetSolverAlphaAndBeta(1.0, -a_dtBase);
+> 
+>   s_veloSolver->solve(a_smoothVel, a_solverRHS, a_finestLev, a_baseLev, true, true);
+1201a1180,1182
+>   
+>   bool tagAllIrreg = true; // SC: hardwiring this.. Beware! 
+> 
+1206a1188,1191
+>           
+>           m_veloFluxRegister[ilev] = RefCountedPtr<EBFluxRegister>(new EBFluxRegister(m_eblg[ilev+1].getDBL(), m_eblg[ilev].getDBL(), m_eblg[ilev+1].getEBISL(), m_eblg[ilev].getEBISL(), m_eblg[ilev].getDomain().domainBox(), m_params.m_refRatio[ilev], SpaceDim, m_ebisPtr, tagAllIrreg)); 
+> 
+>           m_veloFluxRegister[ilev]->setToZero();
+2321d2305
+< 
+2423a2408
+> 
+2532a2518,2525
+> /*****************/
+> void EBAMRNoSubcycle::
+> getViscousSource(LevelData<EBCellFAB>&       a_viscousSrc,
+>                  const LevelData<EBCellFAB>* a_velo,
+>                  const LevelData<EBCellFAB>* a_veloCoar,
+>                  int a_level)
+> {
+>   kappaMomentumSource(a_viscousSrc, a_velo, a_veloCoar, a_level);
+2533a2527,2529
+>   KappaSquareNormal normalizinator(m_eblg[a_level]);
+>   normalizinator(a_viscousSrc);
+> }
+2575a2572,2590
+>   Vector<LevelData<EBCellFAB>* > viscousSrc(m_finestLevel+1, NULL);
+>   if (m_viscousCalc)
+>     {
+>       LevelData<EBCellFAB>* coarVelo = NULL;
+>       for (int ilev = 0; ilev < m_finestLevel; ilev++)
+>         {
+>           EBCellFactory fact(m_ebisl[ilev]);
+>           viscousSrc[ilev] = new LevelData<EBCellFAB>(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact); 
+>           LevelData<EBCellFAB> tempVelo(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact);
+>           a_velo[ilev]->copyTo(tempVelo);
+>           if (ilev > 0)
+>             {
+>               coarVelo = a_velo[ilev-1];
+>             }
+>           getViscousSource(*viscousSrc[ilev], &tempVelo, coarVelo, ilev); 
+>         }
+>       if (coarVelo != NULL) delete coarVelo;
+>     }
+> 
+2593,2598c2608,2625
+<           DirichletPoissonEBBC::s_velComp = idir;
+<           viscousSourceForAdvect(m_cellScratc2,   //returns holding source term = nu*lapl
+<                                  m_cellScratch,   //holds cell centered vel comp n
+<                                  m_cellScratc1,   //will hold the zero for the residual calc (zeroed inside routine)
+<                                  idir,            //velocity component
+<                                  m_time);         //time, for BC setting
+---
+>           for (int ilev = 0; ilev <= m_finestLevel; ilev++)
+>             {
+>               EBLevelDataOps::setVal(*m_cellScratc2[ilev], 0.0);
+>               Interval srcInterv(idir, idir);
+>               Interval dstInterv(0 , 0);
+>               viscousSrc[ilev]->copyTo(srcInterv, *m_cellScratc2[ilev], dstInterv);
+>               if (ilev==0)
+>                 {
+>                   //fill fine-fine ghost cells only
+>                   EBLevelDataOps::exchangeAll(*m_cellScratc2[ilev]); 
+>                 }
+>               else // exchange happens in here
+>                 {
+>                   IntVect ivGhost = m_cellScratc2[ilev]->ghostVect();
+>                   EBConstantCFInterp interpolator(m_grids[ilev], m_ebisl[ilev], m_domain[ilev], ivGhost);
+>                   interpolator.interpolate(*m_cellScratc2[ilev]);
+>                 }
+>             }
+2670a2698,2703
+>   // I didn't forget
+>   for (int ilev = 0; ilev <=m_finestLevel; ilev++)
+>     {
+>       delete viscousSrc[ilev];
+>     }
+> 
+2769a2803,2823
+>   
+>   Vector<LevelData<EBCellFAB> *> viscousSrc(m_finestLevel+1, NULL);
+>   
+>   if (m_viscousCalc)
+>     {
+>       LevelData<EBCellFAB>* coarVelo = NULL;
+>       for (int ilev = 0; ilev < m_finestLevel; ilev++)
+>         {
+>           EBCellFactory fact(m_ebisl[ilev]);
+>           viscousSrc[ilev] = new LevelData<EBCellFAB>(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact);
+>           LevelData<EBCellFAB> tempVelo(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact);
+>           a_scalOld[ilev]->copyTo(tempVelo);
+>           if (ilev > 0)
+>             {
+>               coarVelo = a_scalOld[ilev-1];
+>             }
+>           getViscousSource(*viscousSrc[ilev], &tempVelo, coarVelo, ilev);
+>         }
+>       if (coarVelo != NULL) delete coarVelo;
+>     }
+> 
+2800,2805c2854,2872
+<           DirichletPoissonEBBC::s_velComp = icomp;
+<           viscousSourceForAdvect(m_cellScratc2,   //returns holding source term = nu*lapl
+<                                  m_cellScratch,   //holds cell centered vel comp n
+<                                  m_cellScratc1,   //will hold the zero for the residual calc (zeroed inside routine)
+<                                  icomp,           //velocity component
+<                                  m_time);         //time, for BC setting
+---
+>           for (int ilev = 0; ilev <= m_finestLevel; ilev++)
+>             {
+>               EBLevelDataOps::setVal(*m_cellScratc2[ilev], 0.0);
+>               Interval srcInterv(icomp, icomp);
+>               Interval dstInterv(0 , 0);
+>               viscousSrc[ilev]->copyTo(srcInterv, *m_cellScratc2[ilev], dstInterv);
+>               if (ilev==0)
+>                 {
+>                   //fill fine-fine ghost cells only
+>                   EBLevelDataOps::exchangeAll(*m_cellScratc2[ilev]);
+>                 }
+>               else // exchange happens in here
+>                 {
+>                   IntVect ivGhost = m_cellScratc2[ilev]->ghostVect();
+>                   EBConstantCFInterp interpolator(m_grids[ilev], m_ebisl[ilev], m_domain[ilev], ivGhost);
+>                   interpolator.interpolate(*m_cellScratc2[ilev]);
+>                 }
+>             }
+> 
+2919a2987,2992
+>   // I didn't forget
+>   for (int ilev = 0; ilev <=m_finestLevel; ilev++)
+>     {
+>       delete viscousSrc[ilev];
+>     }
+> 
+2948a3022,3044
+> void EBAMRNoSubcycle::
+> kappaMomentumSource(LevelData<EBCellFAB>& a_kappaDivSigma,
+>                     const LevelData<EBCellFAB>* a_velocity,
+>                     const LevelData<EBCellFAB>* a_veloCoar,
+>                     const int a_lev)
+> {
+>   //set the a coefficients to time n
+>   LevelData<EBCellFAB>& acoef = *m_acoVelo[a_lev];
+>   for(DataIterator dit = m_grids[a_lev].dataIterator(); dit.ok(); ++dit)
+>     {
+>       acoef[dit()].setVal(1.0); // I am INS for *'s sake!
+>     }
+> 
+>   Real alpha = 0;   Real beta = 1; //want just the div(flux) part of the operator
+>   // Compute the viscous diffusion term.  coefficient is unity because we want the straight operator
+> 
+>   // CAUTION! check for time dependent BCs
+>   s_veloIntegratorBE->applyOperator(a_kappaDivSigma,
+>                                     *a_velocity,
+>                                     a_veloCoar,
+>                                     a_lev, alpha, beta, true);
+> }
+> /*******************/
+3481,3482c3577,3578
+<   Vector<LevelData<EBCellFAB>* > tempLDPtr;
+<   tempLDPtr.resize(m_finestLevel+1);
+---
+>   Vector<LevelData<EBCellFAB>* > tempVeloPtr;
+>   tempVeloPtr.resize(m_finestLevel+1);
+3486,3488c3582,3584
+<       tempLDPtr[ilev] = new LevelData<EBCellFAB>();
+<       tempLDPtr[ilev]->define(m_grids[ilev], SpaceDim,  3*IntVect::Unit, ebcellfact);
+<       m_velo[ilev]->copyTo(interv, *(tempLDPtr[ilev]), interv);
+---
+>       tempVeloPtr[ilev] = new LevelData<EBCellFAB>();
+>       tempVeloPtr[ilev]->define(m_grids[ilev], SpaceDim,  4*IntVect::Unit, ebcellfact);
+>       m_velo[ilev]->copyTo(interv, *(tempVeloPtr[ilev]), interv);
+3501a3598,3604
+>  
+>   // this part is same for both inviscid and viscous
+>   //add gradient of pressure into udotdelu
+>   EBAMRDataOps::incr(m_uDotDelU, m_gphi, 1.0);
+>   //make udelu = -udelu-gradp == the source term of heat eqn
+>   EBAMRDataOps::scale(m_uDotDelU, -1.0);
+>   EBAMRDataOps::incr(m_uDotDelU, extraSource, 1.0);
+3503c3606
+<   if (!m_viscousCalc)
+---
+>   for (int ilev=0; ilev<= m_finestLevel; ilev++)
+3505,3510c3608
+<       CH_START(t1);
+<       //for inviscid calc, do not add pressure gradient into
+<       //the update so we don't have to iterate for the pressure gradient after regrid.
+<       //If you use the pressure grad in the update and do not iterate after regrid,
+<       //the solution can ring.
+<       for (int ilev=0; ilev<= m_finestLevel; ilev++)
+---
+>       if (!m_viscousCalc)
+3511a3610,3615
+>           CH_START(t1);
+>           //for inviscid calc, do not add pressure gradient into
+>           //the update so we don't have to iterate for the pressure gradient after regrid.
+>           //If you use the pressure grad in the update and do not iterate after regrid,
+>           //the solution can ring.
+> 
+3515,3522d3618
+<               EBCellFAB& uDotDelU = (*m_uDotDelU[ ilev])[dit()];
+<               EBCellFAB& gradPres = (*m_gphi [ ilev])[dit()];
+<               EBCellFAB& source = (*extraSource[ ilev])[dit()];
+<               //make udotdelu = udotdelu + gradp
+<               uDotDelU += gradPres;
+< 
+<               //make udotdelu = -udotdelu - gradp
+<               uDotDelU *= -1.0;
+3524,3525c3620,3621
+<               //adding extra source
+<               uDotDelU += source;
+---
+>               //udotdelu holds -udotdelu - gradp + extraSource
+>               EBCellFAB& uDotDelU = (*m_uDotDelU[ ilev])[dit()];
+3527c3623
+<               //now udotdelu = dt*(-udotdelu - gradp);
+---
+>               //now udotdelu = dt*(-udotdelu - gradp + extraSource);
+3532a3629
+>           CH_STOP(t1);
+3534,3542c3631,3633
+<       CH_STOP(t1);
+<     }
+<   else
+<     {
+<       CH_START(t2);
+<       //add gradient of pressure into udotdelu
+<       EBAMRDataOps::incr(m_uDotDelU, m_gphi, 1.0);
+<       //make udelu = -udelu-gradp == the source term of heat eqn
+<       EBAMRDataOps::scale(m_uDotDelU, -1.0);
+---
+>       else
+>         {
+>           CH_START(t2);
+3544c3635,3648
+<       EBAMRDataOps::incr(m_uDotDelU, extraSource, 1.0);
+---
+>           //uDotDelU holds -uDotDelU - gradP + extraSource
+>           EBCellFactory fact(m_ebisl[ilev]);
+>   	  LevelData<EBCellFAB> velold(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact);
+>   	  LevelData<EBCellFAB> velnew(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact);
+>   	  LevelData<EBCellFAB> rhs(m_grids[ilev], SpaceDim, 4*IntVect::Unit, fact);
+> 
+>           EBFluxRegister*       coarVelFRPtr = NULL;
+>           EBFluxRegister*       fineVelFRPtr = NULL;
+>           LevelData<EBCellFAB>* vCoarOldPtr = NULL;
+>           LevelData<EBCellFAB>* vCoarNewPtr = NULL;
+> 
+>           m_velo[ilev]->copyTo(velold);
+>           m_velo[ilev]->copyTo(velnew);
+>           m_uDotDelU[ilev]->copyTo(rhs);
+3546,3561c3650,3653
+<       if (m_params.m_verbosity >= 2)
+<         {
+<           pout() << "EBAMRNoSubcycle::solving implicitly for viscous and any extra source terms" << endl;
+<         }
+<       for (int idir = 0; idir < SpaceDim; idir++)
+<         {
+<           //make cellscratch = udotdelu
+<           EBAMRDataOps::setToZero(m_cellScratc2);
+<           EBAMRDataOps::setToZero(m_cellScratc1);
+<           EBAMRDataOps::setToZero(m_cellScratch);
+<           //put component of rhs into cellscratc2
+<           //put component of velo into cellscratch
+<           //new velocity comes out in cellscratc1
+<           Interval vecInterv(idir, idir);
+<           Interval scaInterv(0, 0);
+<           for (int ilev = 0; ilev <= m_finestLevel; ilev++)
+---
+>           Real tCoarOld = 0.0;
+>           Real tCoarNew = 0.0;
+> 
+>           if (ilev > 0)
+3563,3565c3655,3665
+<               m_uDotDelU[ilev]->copyTo(vecInterv,  *m_cellScratc2[ilev], scaInterv);
+<               m_velo[ ilev]->copyTo(vecInterv,  *m_cellScratch[ilev], scaInterv);
+<               m_velo[ ilev]->copyTo(vecInterv,  *m_cellScratc1[ilev], scaInterv);
+---
+>               coarVelFRPtr = m_veloFluxRegister[ilev-1].operator->();
+>               tCoarNew = m_time;
+>               tCoarOld = tCoarNew - m_dt;
+>               
+>               const EBLevelGrid& ceblg = m_eblg[ilev-1];
+>               EBCellFactory cfact(ceblg.getEBISL());
+>               vCoarNewPtr = new LevelData<EBCellFAB>(ceblg.getDBL(), SpaceDim, 4*IntVect::Unit, cfact);
+>               vCoarOldPtr = new LevelData<EBCellFAB>(ceblg.getDBL(), SpaceDim, 4*IntVect::Unit, cfact); 
+> 
+>               m_velo[ilev]->copyTo(*vCoarNewPtr);
+>               m_velo[ilev]->copyTo(*vCoarOldPtr);
+3568,3569c3668,3682
+<           //tell EBBC which velocity component we are solving for
+<           DirichletPoissonEBBC::s_velComp = idir;
+---
+>           if (ilev < m_finestLevel)
+>             {
+>               fineVelFRPtr = m_veloFluxRegister[ilev].operator->();
+>             } 
+> 
+>           LevelData<EBCellFAB>& acoef = *m_acoVelo[ilev];
+>           for(DataIterator dit = m_grids[ilev].dataIterator(); dit.ok(); ++dit)
+>             {
+>               acoef[dit()].setVal(1.0); // I am INS for *'s sake!
+>             }
+> 
+>           if (m_params.m_verbosity >= 2)
+>             {
+>               pout() << "EBAMRNoSubcycle::solving implicitly for viscous and any extra source terms" << endl;
+>             }
+3571,3573d3683
+<           //solve the stinking equation
+<           int lbase = 0;
+<           int lmax = m_finestLevel;
+3576,3582c3686,3688
+<               m_tgaSolver[idir]->oneStep(m_cellScratc1, //vel new
+<                                          m_cellScratch, //vel old
+<                                          m_cellScratc2, //source
+<                                          m_dt,
+<                                          lbase,
+<                                          lmax,
+<                                          m_time);
+---
+>               s_veloIntegratorBE->updateSoln(velnew, velold, rhs,  fineVelFRPtr, coarVelFRPtr,
+>                                      vCoarOldPtr, vCoarNewPtr, m_time, tCoarOld, tCoarNew, m_dt,
+>                                      ilev, true);
+3583a3690
+> 
+3586,3592c3693,3695
+<               m_backwardSolver[idir]->oneStep(m_cellScratc1, //vel new
+<                                               m_cellScratch, //vel old
+<                                               m_cellScratc2, //source
+<                                               m_dt,
+<                                               lbase,
+<                                               lmax,
+<                                               false);//do not zero phi
+---
+>               s_veloIntegratorTGA->updateSoln(velnew, velold, rhs,  fineVelFRPtr, coarVelFRPtr,
+>                                       vCoarOldPtr, vCoarNewPtr, m_time, tCoarOld, tCoarNew, m_dt,
+>                                       ilev, true); 
+3593a3697
+> 
+3597c3701
+<             }
+---
+>             }     
+3599,3600c3703
+<           //now copy the answer back from scratch into velo
+<           for (int ilev = 0; ilev <= m_finestLevel; ilev++)
+---
+>           if (ilev > 0)
+3602,3603c3705,3709
+<               m_cellScratc1[ilev]->copyTo(scaInterv, *m_velo[ilev],  vecInterv);
+<             }
+---
+>               delete vCoarOldPtr;
+>               delete vCoarNewPtr;
+>             }   
+>           
+>           CH_STOP(t2);   
+3605c3711
+<       CH_STOP(t2);
+---
+>       
+3664c3770
+<   //don't change tempLDPtr if using it to cache velocity during priming
+---
+>   //don't change tempVeloPtr if using it to cache velocity during priming
+3667,3668c3773,3774
+<       EBAMRDataOps::incr(tempLDPtr, m_velo, -1.0);
+<       EBAMRDataOps::scale(tempLDPtr, 1./m_dt);
+---
+>       EBAMRDataOps::incr(tempVeloPtr, m_velo, -1.0);
+>       EBAMRDataOps::scale(tempVeloPtr, 1./m_dt);
+3676c3782
+<               tempLDPtr[ ilev]->copyTo(vecInterv,  *m_cellScratch[ilev], scaInterv);
+---
+>               tempVeloPtr[ ilev]->copyTo(vecInterv,  *m_cellScratch[ilev], scaInterv);
+3720c3826
+<           tempLDPtr[ilev]->copyTo(interv, *m_velo[ilev], interv);
+---
+>           tempVeloPtr[ilev]->copyTo(interv, *m_velo[ilev], interv);
+3726c3832
+<       delete tempLDPtr[ilev];
+---
+>       delete tempVeloPtr[ilev];
+4358a4465,4466
+>      int lbase = 0;
+>      int lmax = m_finestLevel;
+4367a4476,4487
+>      // this is something that should go away in the new way of doing things
+>      Vector<LevelData<EBCellFAB>* > phi(nlevels);
+>      Vector<LevelData<EBCellFAB>* > rhs(nlevels);
+>      for (int ilev = 0; ilev < nlevels; ilev++)
+>        { 
+>          EBCellFactory ebcellfact(m_ebisl[ilev]);
+>          phi[ilev] = new LevelData<EBCellFAB>(m_grids[ilev], SpaceDim,   4*IntVect::Unit, ebcellfact);
+>          rhs[ilev] = new LevelData<EBCellFAB>(m_grids[ilev], SpaceDim,   4*IntVect::Unit, ebcellfact);
+>        }
+> 
+>      s_veloSolver->init(phi, rhs, lmax, lbase);
+> 
+4423c4543
+<       // aco is filled in kappaMomentumSource
+---
+>       // aco is filled in kappaMomentumSource or getViscousLinearOp

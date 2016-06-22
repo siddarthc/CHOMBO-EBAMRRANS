@@ -127,7 +127,7 @@ getFaceFlux(BaseFab<Real>&        a_faceFlux,
           CH_assert(a_phi.nComp() == SpaceDim); 
           const FArrayBox& phiFAB = (const FArrayBox& )a_phi; 
           const Box& faceBox = a_faceFlux.box();
-          int iside = -1; //a_side == Side::Hi
+          int iside = -1; //a_side == Side::Hi, its -1 for PoissonOp
 
            RefCountedPtr<BaseBCFuncEval> funcEval;
 
@@ -153,7 +153,7 @@ getFaceFlux(BaseFab<Real>&        a_faceFlux,
             {
               const IntVect& iv = bit();
               RealVect loc = EBArith::getIVLocation(iv,a_dx,a_probLo);
-              loc[a_idir] -= iside * 0.5 * a_dx[a_idir];//point is now at the face center
+              loc[a_idir] += iside * 0.5 * a_dx[a_idir];// difference between PiissonOp and this is that here the incoming box is half shifted
               bool isInsideTube;
               whereAMI(isInsideTube, loc);
 

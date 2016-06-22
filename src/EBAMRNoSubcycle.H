@@ -24,6 +24,7 @@
 #include "EBCoarseAverage.H"
 #include "EBSimpleSolver.H"
 #include "EBFastFR.H"
+#include "EBFluxRegister.H"
 #include "EBAMRLevelFactory.H"
 
 #include "MomentumTGA.H"
@@ -377,6 +378,25 @@ protected:
   {
   }
 
+  virtual void getViscousOp(Vector<LevelData<EBCellFAB>* >& a_viscousLinearOp,
+                             Vector<LevelData<EBCellFAB>* >& a_tempVelocity,
+                             Vector<LevelData<EBCellFAB>* >& a_solverRHS,
+                             int a_baseLev, int a_finestLev, Real a_dtBase);
+
+  virtual void smoothVelocity(Vector<LevelData<EBCellFAB>* >& a_smoothVel, 
+                               Vector<LevelData<EBCellFAB>* >& a_solverRHS, 
+                               int a_baseLev, int a_finestLev, Real a_dtBase);
+
+  virtual void kappaMomentumSource(LevelData<EBCellFAB>& a_kappaDivSigma,
+                                  const LevelData<EBCellFAB>* a_velocity,
+                                  const LevelData<EBCellFAB>* a_veloCoar,
+                                  const int a_lev);
+
+  virtual void getViscousSource(LevelData<EBCellFAB>&       a_viscousSrc,
+                                const LevelData<EBCellFAB>* a_velo,
+                                const LevelData<EBCellFAB>* a_veloCoar,
+                                int a_level);
+
 #ifdef CH_USE_HDF5
   ///
   void writeCheckpointFile();
@@ -674,7 +694,8 @@ protected:
   Vector<LayoutData< Vector< BaseIVFAB<Real> * > >* >  m_coveredScratchHi;
 
   Vector<RefCountedPtr<EBLevelAdvect>  > m_ebLevAd;
-  Vector<RefCountedPtr<EBFastFR     >  > m_fluxReg;
+  Vector<RefCountedPtr<EBFastFR> > m_fluxReg;
+  Vector<RefCountedPtr<EBFluxRegister> > m_veloFluxRegister;
 
   void refluxUDotDelU(Vector<LevelData<EBCellFAB>* >  &  a_uDotDelU,
                       Vector<LevelData<EBFluxFAB>* >  &  a_macAdvVel,
